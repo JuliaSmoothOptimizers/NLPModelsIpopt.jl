@@ -1,0 +1,25 @@
+language: julia
+
+os:
+  - linux
+  - osx
+
+julia:
+  - 0.7
+  - 1.0
+  - nightly
+
+matrix:
+  allow_failures:
+    - julia: nightly
+
+notifications:
+  email:
+    recipients: abel.s.siqueira@gmail.com
+    on_success: never
+    on_failure: change
+
+branches:
+  only:
+    - master
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/ # tags
