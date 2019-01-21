@@ -34,9 +34,9 @@ function ipopt(nlp :: AbstractNLPModel)
       cols .= J
     else
       if nlp.meta.ncon > 0
-        I, J, V = hess_coord(nlp, x, obj_weight=1.0, y=λ)
+        I, J, V = hess_coord(nlp, x, obj_weight=σ, y=λ)
       else
-        I, J, V = hess_coord(nlp, x, obj_weight=1.0)
+        I, J, V = hess_coord(nlp, x, obj_weight=σ)
       end
       values .= V
     end
@@ -47,7 +47,7 @@ function ipopt(nlp :: AbstractNLPModel)
                           nlp.meta.nnzj, nlp.meta.nnzh,
                           eval_f, eval_g, eval_grad_f,
                           eval_jac_g, eval_h)
-  problem.x = nlp.meta.x0
+  problem.x = copy(nlp.meta.x0)
   status = solveProblem(problem)
   x  = problem.x
   c  = problem.g
