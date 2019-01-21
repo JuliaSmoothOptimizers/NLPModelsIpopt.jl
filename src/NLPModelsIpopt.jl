@@ -8,7 +8,9 @@ using NLPModels, Ipopt
 
 Solves the `NLPModel` problem `nlp` using `IpOpt`.
 """
-function ipopt(nlp :: AbstractNLPModel)
+function ipopt(nlp :: AbstractNLPModel;
+               callback :: Union{Function,Nothing} = nothing,
+               kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
   eval_f(x) = obj(nlp, x)
   eval_g(x, g) = m > 0 ? cons!(nlp, x, g) : zeros(0)
@@ -48,6 +50,15 @@ function ipopt(nlp :: AbstractNLPModel)
                           eval_f, eval_g, eval_grad_f,
                           eval_jac_g, eval_h)
   problem.x = copy(nlp.meta.x0)
+
+  # Options
+  for (k,v) in kwargs
+    addOption(problem, string(k), v)
+  end
+
+  # Callback
+  callback === nothing || setIntermediateCallback(problem, callback)
+
   status = solveProblem(problem)
   x  = problem.x
   c  = problem.g
