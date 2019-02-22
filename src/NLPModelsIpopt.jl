@@ -13,35 +13,32 @@ function ipopt(nlp :: AbstractNLPModel;
                ignore_time :: Bool = false,
                kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
+  local jrows, jcols, hrows, hcols
+
   eval_f(x) = obj(nlp, x)
   eval_g(x, g) = m > 0 ? cons!(nlp, x, g) : zeros(0)
   eval_grad_f(x, g) = grad!(nlp, x, g)
   eval_jac_g(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
     nlp.meta.ncon == 0 && return
     if mode == :Structure
-      x = [-(-1.0)^i for i = 1:nlp.meta.nvar]
-      I, J, _ = jac_coord(nlp, x)
-      rows .= I
-      cols .= J
+      jrows, jcols = jac_structure(nlp)
+      rows .= jrows
+      cols .= jcols
     else
-      I, J, V = jac_coord(nlp, x)
-      values .= V
+      jac_coord!(nlp, x, jrows, jcols, values)
     end
   end
   eval_h(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
     if mode == :Structure
-      x = [-(-1.0)^i for i = 1:nlp.meta.nvar]
-      λ = [-(-1.0)^i for i = 1:nlp.meta.ncon]
-      I, J, _ = hess_coord(nlp, x, obj_weight=1.0, y=λ)
-      rows .= I
-      cols .= J
+      hrows, hcols = hess_structure(nlp)
+      rows .= hrows
+      cols .= hcols
     else
       if nlp.meta.ncon > 0
-        I, J, V = hess_coord(nlp, x, obj_weight=σ, y=λ)
+        hess_coord!(nlp, x, hrows, hcols, values, obj_weight=σ, y=λ)
       else
-        I, J, V = hess_coord(nlp, x, obj_weight=σ)
+        hess_coord!(nlp, x, hrows, hcols, values, obj_weight=σ)
       end
-      values .= V
     end
   end
 
