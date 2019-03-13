@@ -2,7 +2,27 @@ module NLPModelsIpopt
 
 export ipopt
 
-using NLPModels, Ipopt
+using NLPModels, Ipopt, SolverTools
+
+const ipopt_statuses = Dict(0 => :first_order,
+                            1 => :first_order,
+                            2 => :infeasible,
+                            3 => :small_step,
+                            #4 => Diverging iterates
+                            #5 => User requestep stop
+                            #6 => Feasible point found
+                            -1 => :max_iter,
+                            #-2 => Restoration failed
+                            #-3 => Error in step computation
+                            -4 => :max_time,
+                            #-10 => Not enough degress of freedom
+                            #-11 => Invalid problem definition
+                            #-12 => Invalid option
+                            #-13 => Invalid number detected
+                            -100 => :exception,
+                            -101 => :exception,
+                            -102 => :exception,
+                            -199 => :exception)
 
 """`output = ipopt(nlp)`
 
@@ -76,21 +96,29 @@ function ipopt(nlp :: AbstractNLPModel;
   end
   ipopt_output = readlines(tmpfile)
 
-  cpu_time_lines = filter(line->occursin("CPU secs", line), ipopt_output)
   Δt = 0.0
-  for line in cpu_time_lines
-    Δt += Meta.parse(split(line, "=")[2])
+  dual_feas = primal_feas = Inf
+  for line in ipopt_output
+    if occursin("CPU secs", line)
+      Δt += Meta.parse(split(line, "=")[2])
+    elseif occursin("Dual infeasibility", line)
+      dual_feas = Meta.parse(split(line)[4])
+    elseif occursin("Constraint violation", line)
+      primal_feas = Meta.parse(split(line)[4])
+    end
   end
   if print_output
     println(join(ipopt_output, "\n"))
   end
-  x  = problem.x
-  c  = problem.g
-  λ  = problem.mult_g
-  zL = problem.mult_x_L
-  zU = problem.mult_x_U
-  f  = problem.obj_val
-  return x, f, c, λ, zL, zU, Ipopt.ApplicationReturnStatus[status], Δt
+
+  return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
+                               objective=problem.obj_val, dual_feas=dual_feas,
+                               primal_feas=primal_feas, elapsed_time=Δt,
+                               solver_specific=Dict(:multipliers_con => problem.mult_g,
+                                                    :multipliers_L => problem.mult_x_L,
+                                                    :multipliers_U => problem.mult_x_U,
+                                                    :internal_msg => Ipopt.ApplicationReturnStatus[status])
+                              )
 end
 
 end # module
