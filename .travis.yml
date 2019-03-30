@@ -28,6 +28,11 @@ jobs:
   include:
     - stage: Documentation
       julia: 1.1
+      env:
+        - PYTHON=""
+      addons:
+        apt:
+          update: true
       os: linux
       script:
         - julia --project=docs -e 'using Pkg; Pkg.instantiate(); Pkg.add(PackageSpec(path=pwd()))'

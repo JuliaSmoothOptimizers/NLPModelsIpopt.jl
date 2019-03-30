@@ -1,6 +1,6 @@
 # Tutorial
 
-NLPModelsIpopt is a thin IPOPT wrapper for NLPModels. In this tutorial we'll show a few
+NLPModelsIpopt is a thin IPOPT wrapper for NLPModels. In this tutorial we'll show
 examples of problems created with NLPModels and solved with Ipopt.
 
 ```@contents
@@ -57,7 +57,7 @@ print(stats)
 
 ## Output
 
-The output of `ipopt` is a `GenericExecutionStats` from `SolverTools`. It contains a few basic information of the solver.
+The output of `ipopt` is a `GenericExecutionStats` from `SolverTools`. It contains basic information from the solver.
 In addition to the built-in fields of `GenericExecutionStats`, we also store in
 `solver_specific` the following fields:
 
@@ -72,19 +72,20 @@ stats.solver_specific[:internal_msg]
 
 ## Manual input
 
-This is an example of manually inputting the problem and its derivatives. For this,
-we're creating an NLPModel, and we need to define the following API functions:
+This is an example where we specify the problem and its derivatives manually. For this,
+we create an NLPModel, and we need to define the following API functions:
 - `obj(nlp, x)`: objective
 - `grad!(nlp, x, g)`: gradient
 - `cons!(nlp, x, c)`: constraints, if any
 - `rows, cols = jac_structure(nlp)`: structure of the Jacobian, if constrained;
-- `jac_coord!(nlp, x, rows, cols, vals)`: Jacobian values (don't access `rows` and
-  `cols`, as Ipopt doesn't actually pass them;
-- `hess_structure(nlp)`: structure of the lower half of the Hessian of the
+- `jac_coord!(nlp, x, rows, cols, vals)`: Jacobian values (the user should not attempt to access `rows` and
+  `cols`, as Ipopt doesn't actually pass them);
+- `hess_structure(nlp)`: structure of the lower triangle of the Hessian of the
   Lagrangian;
 - `hess_coord!(nlp, x, rows, cols, vals; obj_weight=1.0, y=[])`: Hessian of the
   Lagrangian, where `obj_weight` is the weight assigned to the objective, and `y` is the
-  multipliers vector.
+  multipliers vector (the user should not attempt to access `rows` and
+  `cols`, as Ipopt doesn't actually pass them).
 
 Let's implement a logistic regression model. We consider the model ``h(\beta; x) = (1 + e^{-\beta^Tx})^{-1}``, and the loss function
 ```math
@@ -111,7 +112,7 @@ end
 
 function NLPModels.obj(nlp :: LogisticRegression, β::AbstractVector)
   hβ = 1 ./ (1 .+ exp.(-nlp.X * β))
-  -sum(nlp.y .* log.(hβ .+ 1e-8) .+ (1 .- nlp.y) .* log.(1 .- hβ .+ 1e-8)) + nlp.λ * dot(β, β) / 2
+  return -sum(nlp.y .* log.(hβ .+ 1e-8) .+ (1 .- nlp.y) .* log.(1 .- hβ .+ 1e-8)) + nlp.λ * dot(β, β) / 2
 end
 
 function NLPModels.grad!(nlp :: LogisticRegression, β::AbstractVector, g::AbstractVector)
