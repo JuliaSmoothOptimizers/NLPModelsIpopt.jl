@@ -70,7 +70,7 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.976
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.936
 Total CPU secs in NLP function evaluations           =      0.204
 
 EXIT: Optimal Solution Found.
@@ -80,7 +80,7 @@ Generic Execution stats
   dual feasibility: 3.732500974666708e-10
   solution: [1.0  1.0]
   iterations: -1
-  elapsed time: 1.18
+  elapsed time: 1.1400000000000001
   solver specifics:
     multipliers_U: [0.0  0.0]
     multipliers_L: [0.0  0.0]
@@ -151,8 +151,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      2.872
-Total CPU secs in NLP function evaluations           =      1.552
+Total CPU secs in IPOPT (w/o function evaluations)   =      2.808
+Total CPU secs in NLP function evaluations           =      1.528
 
 EXIT: Optimal Solution Found.</code></pre></div><p>Another example, using a constrained problem</p><div><pre><code class="language-julia">n = 10
 x0 = ones(n)
@@ -168,7 +168,7 @@ print(stats)</code></pre><pre><code class="language-none">Generic Execution stat
   dual feasibility: 6.315907100018699e-9
   solution: [-0.950556  0.913901  0.989091  0.998559 ⋯ 0.9999999300706429]
   iterations: -1
-  elapsed time: 3.1319999999999997
+  elapsed time: 3.468
   solver specifics:
     multipliers_U: [0.0  0.0  0.0  0.0 ⋯ 0.0]
     multipliers_L: [0.0  0.0  0.0  0.0 ⋯ 0.0]
