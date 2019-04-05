@@ -1,5 +1,5 @@
 name = "NLPModelsIpopt"
-uuid = "bd118512-1daa-11e9-383d-afcd643cf987"
+uuid = "f4238b75-b362-5c4c-b852-0801c9a21d71"
 authors = ["Abel Soares Siqueira <abel.s.siqueira@gmail.com>"]
 version = "0.1.0"
 
