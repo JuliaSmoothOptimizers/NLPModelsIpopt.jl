@@ -96,6 +96,7 @@ function ipopt(nlp :: AbstractNLPModel;
   ipopt_output = readlines(tmpfile)
 
   Δt = 0.0
+  iter = -1
   dual_feas = primal_feas = Inf
   for line in ipopt_output
     if occursin("CPU secs", line)
@@ -114,7 +115,7 @@ function ipopt(nlp :: AbstractNLPModel;
 
   return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
                                objective=problem.obj_val, dual_feas=dual_feas,
-                               primal_feas=primal_feas, elapsed_time=Δt,
+                               primal_feas=primal_feas, iter=iter, elapsed_time=Δt,
                                solver_specific=Dict(:multipliers_con => problem.mult_g,
                                                     :multipliers_L => problem.mult_x_L,
                                                     :multipliers_U => problem.mult_x_U,
