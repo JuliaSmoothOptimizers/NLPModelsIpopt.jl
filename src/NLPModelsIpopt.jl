@@ -98,6 +98,7 @@ function ipopt(nlp :: AbstractNLPModel;
 
   Δt = 0.0
   dual_feas = primal_feas = Inf
+  iter = -1
   for line in ipopt_output
     if occursin("CPU secs", line)
       Δt += Meta.parse(split(line, "=")[2])
@@ -105,6 +106,8 @@ function ipopt(nlp :: AbstractNLPModel;
       dual_feas = Meta.parse(split(line)[4])
     elseif occursin("Constraint violation", line)
       primal_feas = Meta.parse(split(line)[4])
+    elseif occursin("Number of Iterations", line)
+		  iter = Meta.parse(split(line)[4])
     end
   end
   if print_output
@@ -112,7 +115,7 @@ function ipopt(nlp :: AbstractNLPModel;
   end
 
   return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
-                               objective=problem.obj_val, dual_feas=dual_feas,
+                               objective=problem.obj_val, dual_feas=dual_feas, iter=iter,
                                primal_feas=primal_feas, elapsed_time=Δt,
                                solver_specific=Dict(:multipliers_con => problem.mult_g,
                                                     :multipliers_L => problem.mult_x_L,
