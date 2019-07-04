@@ -70,17 +70,18 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.980
-Total CPU secs in NLP function evaluations           =      0.212
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.932
+Total CPU secs in NLP function evaluations           =      0.208
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
   status: &quot;first-order stationary&quot;
   objective value: 3.743975643139474e-21
   dual feasibility: 3.732500974666708e-10
+  primal feasibility: 0.0
   solution: [1.0  1.0]
-  iterations: -1
-  elapsed time: 1.192
+  iterations: 21
+  elapsed time: 1.1400000000000001
   solver specifics:
     multipliers_U: [0.0  0.0]
     multipliers_L: [0.0  0.0]
@@ -151,8 +152,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      3.064
-Total CPU secs in NLP function evaluations           =      1.680
+Total CPU secs in IPOPT (w/o function evaluations)   =      2.628
+Total CPU secs in NLP function evaluations           =      1.500
 
 EXIT: Optimal Solution Found.</code></pre></div><p>Another example, using a constrained problem</p><div><pre><code class="language-julia">n = 10
 x0 = ones(n)
@@ -166,9 +167,10 @@ print(stats)</code></pre><pre><code class="language-none">Generic Execution stat
   status: &quot;first-order stationary&quot;
   objective value: 6.232458632437464
   dual feasibility: 6.315907100018699e-9
+  primal feasibility: 8.354206215699378e-12
   solution: [-0.950556  0.913901  0.989091  0.998559 ⋯ 0.9999999300706429]
-  iterations: -1
-  elapsed time: 3.252
+  iterations: 6
+  elapsed time: 3.1999999999999997
   solver specifics:
     multipliers_U: [0.0  0.0  0.0  0.0 ⋯ 0.0]
     multipliers_L: [0.0  0.0  0.0  0.0 ⋯ 0.0]
@@ -247,7 +249,7 @@ ypred = hβ .&gt; 0.5
 
 acc = count(df.buy .== ypred) / m
 println(&quot;acc = $acc&quot;)</code></pre><pre><code class="language-none">acc = 0.93</code></pre></div><div></div><pre><code class="language-none">using Plots
-pyplot()
+gr()
 
 f(a, b) = dot(β, [1.0; a; a^2; b; b^2; a * b])
 P = findall(df.buy .== true)
