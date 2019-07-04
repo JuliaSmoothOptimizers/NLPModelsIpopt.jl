@@ -172,7 +172,7 @@ println("acc = $acc")
 
 ```@setup ex3
 using Plots
-pyplot()
+gr()
 
 f(a, b) = dot(β, [1.0; a; a^2; b; b^2; a * b])
 P = findall(df.buy .== true)
@@ -185,7 +185,7 @@ png("ex3")
 
 ```
 using Plots
-pyplot()
+gr()
 
 f(a, b) = dot(β, [1.0; a; a^2; b; b^2; a * b])
 P = findall(df.buy .== true)
