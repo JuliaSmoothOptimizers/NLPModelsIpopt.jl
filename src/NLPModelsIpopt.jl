@@ -30,7 +30,6 @@ Solves the `NLPModel` problem `nlp` using `IpOpt`.
 """
 function ipopt(nlp :: AbstractNLPModel;
                callback :: Union{Function,Nothing} = nothing,
-               ignore_time :: Bool = false,
                kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
   local jrows, jcols, hrows, hcols
@@ -69,32 +68,39 @@ function ipopt(nlp :: AbstractNLPModel;
                           eval_jac_g, eval_h)
   problem.x = copy(nlp.meta.x0)
 
-  print_output = true
-
-  # Options
-  for (k,v) in kwargs
-    if ignore_time || k != :print_level || v ≥ 3
-      addOption(problem, string(k), v)
+  # pass options to IPOPT
+  # make sure IPOPT logs to file so we can grep time, residuals and number of iterations
+  ipopt_log_to_file = false
+  ipopt_file_log_level = 3
+  local ipopt_log_file
+  for (k, v) in kwargs
+    if k == :output_file
+      ipopt_log_file = v
+      ipopt_log_to_file = true
+    elseif k == :file_print_level
+      ipopt_file_log_level = v
     else
-      if v > 0
-        @warn("`print_level` should be 0 or ≥ 3 to get the elapsed time, if you don't care about the elapsed time, pass `ignore_time=true`")
-      end
-      print_output = false
-      addOption(problem, "print_level", 3)
+      addOption(problem, string(k), v)
     end
   end
+
+  if ipopt_log_to_file
+    0 < ipopt_file_log_level < 3 && @warn("`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations")
+  else
+    # log to file anyways to parse the output
+    ipopt_log_file = tempname()
+    # make sure the user didn't specify a file log level without a file name
+    0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
+  end
+
+  addOption(problem, "output_file", ipopt_log_file)
+  addOption(problem, "file_print_level", ipopt_file_log_level)
 
   # Callback
   callback === nothing || setIntermediateCallback(problem, callback)
 
-  tmpfile = tempname()
-  local status
-  open(tmpfile, "w") do io
-    redirect_stdout(io) do
-      status = solveProblem(problem)
-    end
-  end
-  ipopt_output = readlines(tmpfile)
+  status = solveProblem(problem)
+  ipopt_output = readlines(ipopt_log_file)
 
   Δt = 0.0
   dual_feas = primal_feas = Inf
@@ -107,11 +113,8 @@ function ipopt(nlp :: AbstractNLPModel;
     elseif occursin("Constraint violation", line)
       primal_feas = Meta.parse(split(line)[4])
     elseif occursin("Number of Iterations", line)
-		  iter = Meta.parse(split(line)[4])
+      iter = Meta.parse(split(line)[4])
     end
-  end
-  if print_output
-    println(join(ipopt_output, "\n"))
   end
 
   return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
