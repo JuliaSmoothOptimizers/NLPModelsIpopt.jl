@@ -112,7 +112,7 @@ function ipopt(nlp :: AbstractNLPModel;
       dual_feas = Meta.parse(split(line)[4])
     elseif occursin("Constraint violation", line)
       primal_feas = Meta.parse(split(line)[4])
-    elseif occursin("Number of Iterations", line)
+    elseif occursin("Number of Iterations....", line)
       iter = Meta.parse(split(line)[4])
     end
   end
