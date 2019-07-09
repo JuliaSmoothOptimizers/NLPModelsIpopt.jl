@@ -32,7 +32,6 @@ function ipopt(nlp :: AbstractNLPModel;
                callback :: Union{Function,Nothing} = nothing,
                kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
-  local jrows, jcols, hrows, hcols
 
   eval_f(x) = obj(nlp, x)
   eval_g(x, g) = m > 0 ? cons!(nlp, x, g) : zeros(0)
@@ -40,23 +39,19 @@ function ipopt(nlp :: AbstractNLPModel;
   eval_jac_g(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
     nlp.meta.ncon == 0 && return
     if mode == :Structure
-      jrows, jcols = jac_structure(nlp)
-      rows .= jrows
-      cols .= jcols
+      jac_structure!(nlp, rows, cols)
     else
-      jac_coord!(nlp, x, jrows, jcols, values)
+      jac_coord!(nlp, x, rows, cols, values)
     end
   end
   eval_h(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
     if mode == :Structure
-      hrows, hcols = hess_structure(nlp)
-      rows .= hrows
-      cols .= hcols
+      hess_structure!(nlp, rows, cols)
     else
       if nlp.meta.ncon > 0
-        hess_coord!(nlp, x, hrows, hcols, values, obj_weight=σ, y=λ)
+        hess_coord!(nlp, x, rows, cols, values, obj_weight=σ, y=λ)
       else
-        hess_coord!(nlp, x, hrows, hcols, values, obj_weight=σ)
+        hess_coord!(nlp, x, rows, cols, values, obj_weight=σ)
       end
     end
   end
