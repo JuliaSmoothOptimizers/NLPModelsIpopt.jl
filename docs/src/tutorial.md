@@ -120,10 +120,12 @@ function NLPModels.grad!(nlp :: LogisticRegression, β::AbstractVector, g::Abstr
   g .= nlp.X' * (hβ .- nlp.y) + nlp.λ * β
 end
 
-function NLPModels.hess_structure(nlp :: LogisticRegression)
+function NLPModels.hess_structure!(nlp :: LogisticRegression, rows :: AbstractVector{<:Integer}, cols :: AbstractVector{<:Integer})
   n = nlp.meta.nvar
   I = ((i,j) for i = 1:n, j = 1:n if i ≥ j)
-  return [getindex.(I, 1); 1:n], [getindex.(I, 2); 1:n]
+  rows[1 : nlp.meta.nnzh] .= [getindex.(I, 1); 1:n]
+  cols[1 : nlp.meta.nnzh] .= [getindex.(I, 2); 1:n]
+  return rows, cols
 end
 
 function NLPModels.hess_coord!(nlp :: LogisticRegression, β::AbstractVector, rows::AbstractVector{<: Integer}, cols::AbstractVector{<: Integer}, vals::AbstractVector; obj_weight=1.0, y=Float64[])
