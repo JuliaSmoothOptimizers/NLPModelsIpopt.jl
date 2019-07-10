@@ -77,10 +77,10 @@ we create an NLPModel, and we need to define the following API functions:
 - `obj(nlp, x)`: objective
 - `grad!(nlp, x, g)`: gradient
 - `cons!(nlp, x, c)`: constraints, if any
-- `rows, cols = jac_structure(nlp)`: structure of the Jacobian, if constrained;
+- `jac_structure!(nlp, rows, cols)`: structure of the Jacobian, if constrained;
 - `jac_coord!(nlp, x, rows, cols, vals)`: Jacobian values (the user should not attempt to access `rows` and
   `cols`, as Ipopt doesn't actually pass them);
-- `hess_structure(nlp)`: structure of the lower triangle of the Hessian of the
+- `hess_structure!(nlp, rows, cols)`: structure of the lower triangle of the Hessian of the
   Lagrangian;
 - `hess_coord!(nlp, x, rows, cols, vals; obj_weight=1.0, y=[])`: Hessian of the
   Lagrangian, where `obj_weight` is the weight assigned to the objective, and `y` is the
