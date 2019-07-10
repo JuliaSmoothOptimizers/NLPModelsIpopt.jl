@@ -70,8 +70,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      1.004
-Total CPU secs in NLP function evaluations           =      0.224
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.944
+Total CPU secs in NLP function evaluations           =      0.176
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
@@ -81,7 +81,7 @@ Generic Execution stats
   primal feasibility: 0.0
   solution: [1.0  1.0]
   iterations: 21
-  elapsed time: 1.228
+  elapsed time: 1.1199999999999999
   solver specifics:
     multipliers_U: [0.0  0.0]
     multipliers_L: [0.0  0.0]
@@ -152,8 +152,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      2.944
-Total CPU secs in NLP function evaluations           =      1.488
+Total CPU secs in IPOPT (w/o function evaluations)   =      2.596
+Total CPU secs in NLP function evaluations           =      1.472
 
 EXIT: Optimal Solution Found.</code></pre></div><p>Another example, using a constrained problem</p><div><pre><code class="language-julia">n = 10
 x0 = ones(n)
@@ -170,7 +170,7 @@ print(stats)</code></pre><pre><code class="language-none">Generic Execution stat
   primal feasibility: 8.354206215699378e-12
   solution: [-0.950556  0.913901  0.989091  0.998559 ⋯ 0.9999999300706429]
   iterations: 6
-  elapsed time: 3.132
+  elapsed time: 3.04
   solver specifics:
     multipliers_U: [0.0  0.0  0.0  0.0 ⋯ 0.0]
     multipliers_L: [0.0  0.0  0.0  0.0 ⋯ 0.0]
@@ -201,10 +201,12 @@ function NLPModels.grad!(nlp :: LogisticRegression, β::AbstractVector, g::Abstr
   g .= nlp.X&#39; * (hβ .- nlp.y) + nlp.λ * β
 end
 
-function NLPModels.hess_structure(nlp :: LogisticRegression)
+function NLPModels.hess_structure!(nlp :: LogisticRegression, rows :: AbstractVector{&lt;:Integer}, cols :: AbstractVector{&lt;:Integer})
   n = nlp.meta.nvar
   I = ((i,j) for i = 1:n, j = 1:n if i ≥ j)
-  return [getindex.(I, 1); 1:n], [getindex.(I, 2); 1:n]
+  rows[1 : nlp.meta.nnzh] .= [getindex.(I, 1); 1:n]
+  cols[1 : nlp.meta.nnzh] .= [getindex.(I, 2); 1:n]
+  return rows, cols
 end
 
 function NLPModels.hess_coord!(nlp :: LogisticRegression, β::AbstractVector, rows::AbstractVector{&lt;: Integer}, cols::AbstractVector{&lt;: Integer}, vals::AbstractVector; obj_weight=1.0, y=Float64[])
