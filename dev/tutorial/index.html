@@ -70,8 +70,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      1.120
-Total CPU secs in NLP function evaluations           =      0.208
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.960
+Total CPU secs in NLP function evaluations           =      0.196
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
@@ -81,7 +81,7 @@ Generic Execution stats
   primal feasibility: 0.0
   solution: [1.0  1.0]
   iterations: 21
-  elapsed time: 1.328
+  elapsed time: 1.156
   solver specifics:
     multipliers_U: [0.0  0.0]
     multipliers_L: [0.0  0.0]
@@ -152,8 +152,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      3.044
-Total CPU secs in NLP function evaluations           =      1.644
+Total CPU secs in IPOPT (w/o function evaluations)   =      2.720
+Total CPU secs in NLP function evaluations           =      1.552
 
 EXIT: Optimal Solution Found.</code></pre></div><p>Another example, using a constrained problem</p><div><pre><code class="language-julia">n = 10
 x0 = ones(n)
@@ -170,7 +170,7 @@ print(stats)</code></pre><pre><code class="language-none">Generic Execution stat
   primal feasibility: 8.354206215699378e-12
   solution: [-0.950556  0.913901  0.989091  0.998559 ⋯ 0.9999999300706429]
   iterations: 6
-  elapsed time: 3.0839999999999996
+  elapsed time: 2.952
   solver specifics:
     multipliers_U: [0.0  0.0  0.0  0.0 ⋯ 0.0]
     multipliers_L: [0.0  0.0  0.0  0.0 ⋯ 0.0]
@@ -250,7 +250,19 @@ hβ = 1 ./ (1 .+ exp.(-X * β))
 ypred = hβ .&gt; 0.5
 
 acc = count(df.buy .== ypred) / m
-println(&quot;acc = $acc&quot;)</code></pre><pre><code class="language-none">acc = 0.93</code></pre></div><div></div><pre><code class="language-none">using Plots
+println(&quot;acc = $acc&quot;)</code></pre><pre><code class="language-none">┌ Warning: `setindex!(df::DataFrame, v::AbstractVector, col_ind::ColumnIndex)` is deprecated, use `begin
+│     df[!, col_ind] = v
+│     df
+│ end` instead.
+│   caller = top-level scope at none:0
+└ @ Core none:0
+┌ Warning: `setindex!(df::DataFrame, v::AbstractVector, col_ind::ColumnIndex)` is deprecated, use `begin
+│     df[!, col_ind] = v
+│     df
+│ end` instead.
+│   caller = top-level scope at none:0
+└ @ Core none:0
+acc = 0.93</code></pre></div><div></div><pre><code class="language-none">using Plots
 gr()
 
 f(a, b) = dot(β, [1.0; a; a^2; b; b^2; a * b])
