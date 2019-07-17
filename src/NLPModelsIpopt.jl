@@ -30,6 +30,7 @@ Solves the `NLPModel` problem `nlp` using `IpOpt`.
 """
 function ipopt(nlp :: AbstractNLPModel;
                callback :: Union{Function,Nothing} = nothing,
+               x0 :: AbstractVector{<: AbstractFloat} = nlp.meta.x0,
                kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
 
@@ -61,7 +62,7 @@ function ipopt(nlp :: AbstractNLPModel;
                           nlp.meta.nnzj, nlp.meta.nnzh,
                           eval_f, eval_g, eval_grad_f,
                           eval_jac_g, eval_h)
-  problem.x = copy(nlp.meta.x0)
+  problem.x = Vector{Float64}(x0)
 
   # pass options to IPOPT
   # make sure IPOPT logs to file so we can grep time, residuals and number of iterations
