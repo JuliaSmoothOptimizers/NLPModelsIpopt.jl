@@ -24,13 +24,21 @@ const ipopt_statuses = Dict(0 => :first_order,
                             -102 => :exception,
                             -199 => :exception)
 
-"""`output = ipopt(nlp)`
+"""`output = ipopt(nlp; kwargs...)`
 
 Solves the `NLPModel` problem `nlp` using `IpOpt`.
+
+# Optional keyword arguments
+* `x0`: a vector of size `nlp.meta.nvar` to specify an initial primal guess
+* `y0`: a vector of size `nlp.meta.ncon` to specify an initial dual guess for the general constraints
+* `zL`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the lower bound constraints
+* `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
+
+All other keyword arguments will be passed to IpOpt as an option.
+See https://www.coin-or.org/Ipopt/documentation/node40.html for the list of options accepted.
 """
 function ipopt(nlp :: AbstractNLPModel;
                callback :: Union{Function,Nothing} = nothing,
-               x0 :: AbstractVector{<: AbstractFloat} = nlp.meta.x0,
                kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
 
@@ -62,7 +70,30 @@ function ipopt(nlp :: AbstractNLPModel;
                           nlp.meta.nnzj, nlp.meta.nnzh,
                           eval_f, eval_g, eval_grad_f,
                           eval_jac_g, eval_h)
-  problem.x = Vector{Float64}(x0)
+
+  kwargs = Dict(kwargs)
+
+  # see if user wants to warm start from an initial primal-dual guess
+  if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL, :zU])
+    addOption(problem, "warm_start_init_point", "yes")
+    pop!(kwargs, :warm_start_init_point, nothing)  # in case the user passed this option
+  end
+  if :x0 ∈ keys(kwargs)
+    problem.x = Vector{Float64}(kwargs[:x0])
+    pop!(kwargs, :x0)
+  end
+  if :y0 ∈ keys(kwargs)
+    problem.mult_g = Vector{Float64}(kwargs[:y0])
+    pop!(kwargs, :y0)
+  end
+  if :zL ∈ keys(kwargs)
+    problem.mult_x_L = Vector{Float64}(kwargs[:zL])
+    pop!(kwargs, :zL)
+  end
+  if :zU ∈ keys(kwargs)
+    problem.mult_x_U = Vector{Float64}(kwargs[:zU])
+    pop!(kwargs, :zU)
+  end
 
   # pass options to IPOPT
   # make sure IPOPT logs to file so we can grep time, residuals and number of iterations
