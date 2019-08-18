@@ -5,11 +5,11 @@ export ipopt
 using NLPModels, Ipopt, SolverTools
 
 const ipopt_statuses = Dict(0 => :first_order,
-                            1 => :first_order,
+                            1 => :acceptable,
                             2 => :infeasible,
                             3 => :small_step,
                             #4 => Diverging iterates
-                            #5 => User requestep stop
+                            5 => :user,
                             #6 => Feasible point found
                             -1 => :max_iter,
                             #-2 => Restoration failed
