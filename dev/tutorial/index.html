@@ -70,19 +70,20 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.941
-Total CPU secs in NLP function evaluations           =      0.188
+Total CPU secs in IPOPT (w/o function evaluations)   =      1.056
+Total CPU secs in NLP function evaluations           =      0.204
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
   status: &quot;first-order stationary&quot;
   objective value: 3.743975643139474e-21
+  primal feasibility: 0.0
   dual feasibility: 3.732500974666708e-10
   primal feasibility: 0.0
   solution: [1.0  1.0]
   iterations: 21
-  elapsed time: 1.129
-  solver specifics:
+  elapsed time: 1.26
+  solver specific:
     multipliers_U: [0.0  0.0]
     multipliers_L: [0.0  0.0]
     multipliers_con: ∅
@@ -152,8 +153,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      2.565
-Total CPU secs in NLP function evaluations           =      1.466
+Total CPU secs in IPOPT (w/o function evaluations)   =      2.718
+Total CPU secs in NLP function evaluations           =      1.516
 
 EXIT: Optimal Solution Found.</code></pre></div><p>Another example, using a constrained problem</p><div><pre><code class="language-julia">n = 10
 x0 = ones(n)
@@ -166,12 +167,13 @@ stats = ipopt(nlp, print_level=0)
 print(stats)</code></pre><pre><code class="language-none">Generic Execution stats
   status: &quot;first-order stationary&quot;
   objective value: 6.232458632437464
+  primal feasibility: 8.354206215699378e-12
   dual feasibility: 6.315907100018699e-9
   primal feasibility: 8.354206215699378e-12
   solution: [-0.950556  0.913901  0.989091  0.998559 ⋯ 0.9999999300706429]
   iterations: 6
-  elapsed time: 2.798
-  solver specifics:
+  elapsed time: 2.936
+  solver specific:
     multipliers_U: [0.0  0.0  0.0  0.0 ⋯ 0.0]
     multipliers_L: [0.0  0.0  0.0  0.0 ⋯ 0.0]
     multipliers_con: [4.13586  -1.87649  -0.0655633  -0.0219319 ⋯ -7.37659216376762e-6]
