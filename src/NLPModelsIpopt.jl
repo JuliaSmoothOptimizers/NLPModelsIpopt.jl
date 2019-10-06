@@ -115,6 +115,7 @@ function ipopt(nlp :: AbstractNLPModel;
     end
   end
 
+  close(ipopt_log_file)
   delete_log_file && rm(ipopt_log_file)
 
   return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
