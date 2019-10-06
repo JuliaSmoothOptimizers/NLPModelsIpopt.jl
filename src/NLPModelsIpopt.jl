@@ -67,6 +67,7 @@ function ipopt(nlp :: AbstractNLPModel;
   # pass options to IPOPT
   # make sure IPOPT logs to file so we can grep time, residuals and number of iterations
   ipopt_log_to_file = false
+  delete_log_file = false
   ipopt_file_log_level = 3
   local ipopt_log_file
   for (k, v) in kwargs
@@ -85,6 +86,7 @@ function ipopt(nlp :: AbstractNLPModel;
   else
     # log to file anyways to parse the output
     ipopt_log_file = tempname()
+    delete_log_file = true
     # make sure the user didn't specify a file log level without a file name
     0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
   end
@@ -112,6 +114,8 @@ function ipopt(nlp :: AbstractNLPModel;
       iter = Meta.parse(split(line)[4])
     end
   end
+
+  delete_log_file && rm(ipopt_log_file)
 
   return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
                                objective=problem.obj_val, dual_feas=dual_feas, iter=iter,
