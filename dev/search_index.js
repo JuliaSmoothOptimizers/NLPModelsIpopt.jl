@@ -53,7 +53,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Tutorial",
     "title": "NLPModelsIpopt.ipopt",
     "category": "function",
-    "text": "output = ipopt(nlp)\n\nSolves the NLPModel problem nlp using IpOpt.\n\n\n\n\n\n"
+    "text": "output = ipopt(nlp; kwargs...)\n\nSolves the NLPModel problem nlp using IpOpt.\n\nOptional keyword arguments\n\nx0: a vector of size nlp.meta.nvar to specify an initial primal guess\ny0: a vector of size nlp.meta.ncon to specify an initial dual guess for the general constraints\nzL: a vector of size nlp.meta.nvar to specify initial multipliers for the lower bound constraints\nzU: a vector of size nlp.meta.nvar to specify initial multipliers for the upper bound constraints\n\nAll other keyword arguments will be passed to IpOpt as an option. See https://www.coin-or.org/Ipopt/documentation/node40.html for the list of options accepted.\n\n\n\n\n\n"
 },
 
 {
