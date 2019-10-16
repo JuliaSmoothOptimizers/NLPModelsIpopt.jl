@@ -115,7 +115,7 @@ function ipopt(nlp :: AbstractNLPModel;
     0 < ipopt_file_log_level < 3 && @warn("`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations")
   else
     # log to file anyways to parse the output
-    ipopt_log_file = tempname()
+    ipopt_log_file = joinpath(tempdir(), "jl_nlpmodelsipopt")
     # make sure the user didn't specify a file log level without a file name
     0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
   end
