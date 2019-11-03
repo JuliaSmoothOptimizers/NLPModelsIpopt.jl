@@ -50,7 +50,7 @@ function ipopt(nlp :: AbstractNLPModel;
     if mode == :Structure
       jac_structure!(nlp, rows, cols)
     else
-      jac_coord!(nlp, x, rows, cols, values)
+      jac_coord!(nlp, x, values)
     end
   end
   eval_h(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
@@ -58,9 +58,9 @@ function ipopt(nlp :: AbstractNLPModel;
       hess_structure!(nlp, rows, cols)
     else
       if nlp.meta.ncon > 0
-        hess_coord!(nlp, x, rows, cols, values, obj_weight=σ, y=λ)
+        hess_coord!(nlp, x, λ, values, obj_weight=σ)
       else
-        hess_coord!(nlp, x, rows, cols, values, obj_weight=σ)
+        hess_coord!(nlp, x, values, obj_weight=σ)
       end
     end
   end
@@ -74,7 +74,7 @@ function ipopt(nlp :: AbstractNLPModel;
   kwargs = Dict(kwargs)
 
   # see if user wants to warm start from an initial primal-dual guess
-  if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL, :zU])
+  if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL0, :zU0])
     addOption(problem, "warm_start_init_point", "yes")
     pop!(kwargs, :warm_start_init_point, nothing)  # in case the user passed this option
   end
@@ -86,13 +86,13 @@ function ipopt(nlp :: AbstractNLPModel;
     problem.mult_g = Vector{Float64}(kwargs[:y0])
     pop!(kwargs, :y0)
   end
-  if :zL ∈ keys(kwargs)
-    problem.mult_x_L = Vector{Float64}(kwargs[:zL])
-    pop!(kwargs, :zL)
+  if :zL0 ∈ keys(kwargs)
+    problem.mult_x_L = Vector{Float64}(kwargs[:zL0])
+    pop!(kwargs, :zL0)
   end
-  if :zU ∈ keys(kwargs)
-    problem.mult_x_U = Vector{Float64}(kwargs[:zU])
-    pop!(kwargs, :zU)
+  if :zU0 ∈ keys(kwargs)
+    problem.mult_x_U = Vector{Float64}(kwargs[:zU0])
+    pop!(kwargs, :zU0)
   end
 
   # pass options to IPOPT
