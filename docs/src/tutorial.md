@@ -78,14 +78,9 @@ we create an NLPModel, and we need to define the following API functions:
 - `grad!(nlp, x, g)`: gradient
 - `cons!(nlp, x, c)`: constraints, if any
 - `jac_structure!(nlp, rows, cols)`: structure of the Jacobian, if constrained;
-- `jac_coord!(nlp, x, rows, cols, vals)`: Jacobian values (the user should not attempt to access `rows` and
-  `cols`, as Ipopt doesn't actually pass them);
-- `hess_structure!(nlp, rows, cols)`: structure of the lower triangle of the Hessian of the
-  Lagrangian;
-- `hess_coord!(nlp, x, rows, cols, vals; obj_weight=1.0, y=[])`: Hessian of the
-  Lagrangian, where `obj_weight` is the weight assigned to the objective, and `y` is the
-  multipliers vector (the user should not attempt to access `rows` and
-  `cols`, as Ipopt doesn't actually pass them).
+- `jac_coord!(nlp, x, vals)`: Jacobian values;
+- `hess_structure!(nlp, rows, cols)`: structure of the lower triangle of the Hessian of the Lagrangian;
+- `hess_coord!(nlp, x, y, vals; obj_weight=1.0)`: Hessian of the Lagrangian, where `obj_weight` is the weight assigned to the objective, and `y` is the multipliers vector.
 
 Let's implement a logistic regression model. We consider the model ``h(\beta; x) = (1 + e^{-\beta^Tx})^{-1}``, and the loss function
 ```math
@@ -128,7 +123,7 @@ function NLPModels.hess_structure!(nlp :: LogisticRegression, rows :: AbstractVe
   return rows, cols
 end
 
-function NLPModels.hess_coord!(nlp :: LogisticRegression, β::AbstractVector, rows::AbstractVector{<: Integer}, cols::AbstractVector{<: Integer}, vals::AbstractVector; obj_weight=1.0, y=Float64[])
+function NLPModels.hess_coord!(nlp :: LogisticRegression, β::AbstractVector, vals::AbstractVector; obj_weight=1.0, y=Float64[])
   n, m = nlp.meta.nvar, length(nlp.y)
   hβ = 1 ./ (1 .+ exp.(-nlp.X * β))
   fill!(vals, 0.0)
@@ -141,7 +136,7 @@ function NLPModels.hess_coord!(nlp :: LogisticRegression, β::AbstractVector, ro
     end
   end
   vals[nlp.meta.nnzh+1:end] .= nlp.λ * obj_weight
-  return rows, cols, vals
+  return vals
 end
 
 Random.seed!(0)
