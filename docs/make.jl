@@ -4,9 +4,9 @@ makedocs(
   modules = [NLPModelsIpopt],
   doctest = true,
   strict = true,
-  assets = ["assets/style.css"],
   format = Documenter.HTML(
-             prettyurls = get(ENV, "CI", nothing) == "true"
+             prettyurls = get(ENV, "CI", nothing) == "true",
+             assets = ["assets/style.css"],
             ),
   sitename = "NLPModelsIpopt.jl",
   pages = Any["Home" => "index.md",
