@@ -4,6 +4,13 @@ os:
   - linux
   - osx
   - windows
+  - freebsd
+
+arch:
+  - x64
+  - amd64
+  # - ppc64le
+  - arm64
 
 julia:
   - 1.0
