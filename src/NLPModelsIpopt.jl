@@ -81,6 +81,8 @@ function ipopt(nlp :: AbstractNLPModel;
   if :x0 ∈ keys(kwargs)
     problem.x = Vector{Float64}(kwargs[:x0])
     pop!(kwargs, :x0)
+  else
+    problem.x = Vector{Float64}(nlp.meta.x0)
   end
   if :y0 ∈ keys(kwargs)
     problem.mult_g = Vector{Float64}(kwargs[:y0])
