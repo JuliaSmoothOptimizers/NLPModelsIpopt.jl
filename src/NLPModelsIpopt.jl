@@ -148,11 +148,9 @@ function ipopt(nlp :: AbstractNLPModel;
 
   return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
                                objective=problem.obj_val, dual_feas=dual_feas, iter=iter,
-                               primal_feas=primal_feas, elapsed_time=Δt,
-                               solver_specific=Dict(:multipliers_con => problem.mult_g,
-                                                    :multipliers_L => problem.mult_x_L,
-                                                    :multipliers_U => problem.mult_x_U,
-                                                    :internal_msg => Ipopt.ApplicationReturnStatus[status])
+                               primal_feas=primal_feas, elapsed_time=Δt, multipliers=problem.mult_g,
+                               multipliers_L=problem.mult_x_L, multipliers_U=problem.mult_x_U,
+                               solver_specific=Dict(:internal_msg => Ipopt.ApplicationReturnStatus[status])
                               )
 end
 
