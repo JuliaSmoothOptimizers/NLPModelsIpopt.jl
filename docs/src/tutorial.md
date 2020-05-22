@@ -54,12 +54,7 @@ print(stats)
 ## Return value
 
 The return value of `ipopt` is a `GenericExecutionStats` instance from `SolverTools`. It contains basic information on the solution returned by the solver.
-In addition to the built-in fields of `GenericExecutionStats`, we store the following subfields in the `solver_specific` field:
-
-- `multipliers_con`: constraints multipliers;
-- `multipliers_L`: variables lower-bound multipliers;
-- `multipliers_U`: variables upper-bound multipliers;
-- `internal_msg`: detailed Ipopt output message.
+In addition to the built-in fields of `GenericExecutionStats`, we store the detailed Ipopt output message inside `solver_specific[:internal_msg]`.
 
 Here is an example using the constrained problem solve:
 ```@example ex1
