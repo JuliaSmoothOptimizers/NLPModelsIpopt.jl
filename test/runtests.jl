@@ -28,7 +28,7 @@ function tests()
   @test stats.iter == 1
 
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 4 * (x[2] - 3)^2, zeros(2),
-                   c=x->[sum(x) - 1.0], lcon=[0.0], ucon=[0.0])
+                   x->[sum(x) - 1.0], [0.0], [0.0])
   stats = ipopt(nlp)
   @test isapprox(stats.solution, [-1.4; 2.4], rtol=1e-6)
   @test stats.iter == 1
