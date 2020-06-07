@@ -70,8 +70,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.849
-Total CPU secs in NLP function evaluations           =      0.384
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.869
+Total CPU secs in NLP function evaluations           =      0.333
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
@@ -83,7 +83,7 @@ Generic Execution stats
   multipliers_L: [0.0  0.0]
   multipliers_U: [0.0  0.0]
   iterations: 21
-  elapsed time: 1.233
+  elapsed time: 1.202
   solver specific:
     internal_msg: :Solve_Succeeded</code></pre><p>For comparison, we present the same problem and output using JuMP:</p><pre><code class="language-julia">using JuMP, Ipopt
 
@@ -155,8 +155,8 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total CPU secs in IPOPT (w/o function evaluations)   =      1.961
-Total CPU secs in NLP function evaluations           =      1.292
+Total CPU secs in IPOPT (w/o function evaluations)   =      1.888
+Total CPU secs in NLP function evaluations           =      1.312
 
 EXIT: Optimal Solution Found.</code></pre><p>Here is an example with a constrained problem:</p><pre><code class="language-julia">n = 10
 x0 = ones(n)
@@ -176,7 +176,7 @@ print(stats)</code></pre><pre><code class="language-none">Generic Execution stat
   multipliers_L: [0.0  0.0  0.0  0.0 ⋯ 0.0]
   multipliers_U: [0.0  0.0  0.0  0.0 ⋯ 0.0]
   iterations: 6
-  elapsed time: 3.861
+  elapsed time: 3.652
   solver specific:
     internal_msg: :Solve_Succeeded</code></pre><h2 id="Return-value-1"><a class="docs-heading-anchor" href="#Return-value-1">Return value</a><a class="docs-heading-anchor-permalink" href="#Return-value-1" title="Permalink"></a></h2><p>The return value of <code>ipopt</code> is a <code>GenericExecutionStats</code> instance from <code>SolverTools</code>. It contains basic information on the solution returned by the solver. In addition to the built-in fields of <code>GenericExecutionStats</code>, we store the detailed Ipopt output message inside <code>solver_specific[:internal_msg]</code>.</p><p>Here is an example using the constrained problem solve:</p><pre><code class="language-julia">stats.solver_specific[:internal_msg]</code></pre><pre><code class="language-none">:Solve_Succeeded</code></pre><h2 id="Manual-input-1"><a class="docs-heading-anchor" href="#Manual-input-1">Manual input</a><a class="docs-heading-anchor-permalink" href="#Manual-input-1" title="Permalink"></a></h2><p>In this section, we work through an example where we specify the problem and its derivatives manually. For this, we need to implement the following <code>NLPModel</code> API methods:</p><ul><li><code>obj(nlp, x)</code>: evaluate the objective value at <code>x</code>;</li><li><code>grad!(nlp, x, g)</code>: evaluate the objective gradient at <code>x</code>;</li><li><code>cons!(nlp, x, c)</code>: evaluate the vector of constraints, if any;</li><li><code>jac_structure!(nlp, rows, cols)</code>: fill <code>rows</code> and <code>cols</code> with the spartity structure of the Jacobian, if the problem is constrained;</li><li><code>jac_coord!(nlp, x, vals)</code>: fill <code>vals</code> with the Jacobian values corresponding to the sparsity structure returned by <code>jac_structure!()</code>;</li><li><code>hess_structure!(nlp, rows, cols)</code>: fill <code>rows</code> and <code>cols</code> with the spartity structure of the lower triangle of the Hessian of the Lagrangian;</li><li><code>hess_coord!(nlp, x, y, vals; obj_weight=1.0)</code>: fill <code>vals</code> with the values of the Hessian of the Lagrangian corresponding to the sparsity structure returned by <code>hess_structure!()</code>, where <code>obj_weight</code> is the weight assigned to the objective, and <code>y</code> is the vector of multipliers.</li></ul><p>The model that we implement is a logistic regression model. We consider the model <span>$h(\beta; x) = (1 + e^{-\beta^Tx})^{-1}$</span>, and the loss function</p><div>\[\ell(\beta) = -\sum_{i = 1}^m y_i \ln h(\beta; x_i) + (1 - y_i) \ln(1 - h(\beta; x_i))\]</div><p>with regularization <span>$\lambda \|\beta\|^2 / 2$</span>.</p><pre><code class="language-julia">using DataFrames, LinearAlgebra, NLPModels, NLPModelsIpopt, Random
 
@@ -273,4 +273,4 @@ P = findall(df.buy .== true)
 scatter(df.age[P], df.salary[P], c=:blue, m=:square)
 P = findall(df.buy .== false)
 scatter!(df.age[P], df.salary[P], c=:red, m=:xcross, ms=7)
-contour!(range(18, 60, step=0.1), range(40_000, 180_000, step=1.0), f, levels=[0.5])</code></pre><p><img src="../ex3.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 23 May 2020 03:24">Saturday 23 May 2020</span>. Using Julia version 1.4.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+contour!(range(18, 60, step=0.1), range(40_000, 180_000, step=1.0), f, levels=[0.5])</code></pre><p><img src="../ex3.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 7 June 2020 03:24">Sunday 7 June 2020</span>. Using Julia version 1.4.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
