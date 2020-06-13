@@ -43,10 +43,11 @@ Here is an example with a constrained problem:
 n = 10
 x0 = ones(n)
 x0[1:2:end] .= -1.2
+lcon = ucon = zeros(n-2)
 nlp = ADNLPModel(x -> sum((x[i] - 1)^2 + 100 * (x[i+1] - x[i]^2)^2 for i = 1:n-1), x0,
-                 c=x -> [3 * x[k+1]^3 + 2 * x[k+2] - 5 + sin(x[k+1] - x[k+2]) * sin(x[k+1] + x[k+2]) +
-                         4 * x[k+1] - x[k] * exp(x[k] - x[k+1]) - 3 for k = 1:n-2],
-                 lcon=zeros(n-2), ucon=zeros(n-2))
+                 x -> [3 * x[k+1]^3 + 2 * x[k+2] - 5 + sin(x[k+1] - x[k+2]) * sin(x[k+1] + x[k+2]) +
+                       4 * x[k+1] - x[k] * exp(x[k] - x[k+1]) - 3 for k = 1:n-2],
+                 lcon, ucon)
 stats = ipopt(nlp, print_level=0)
 print(stats)
 ```
