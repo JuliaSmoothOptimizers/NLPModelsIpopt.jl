@@ -128,7 +128,9 @@ function ipopt(nlp :: AbstractNLPModel;
   # Callback
   callback === nothing || setIntermediateCallback(problem, callback)
 
+  real_time = time()
   status = solveProblem(problem)
+  real_time = time() - real_time
   ipopt_output = readlines(ipopt_log_file)
 
   Δt = 0.0
@@ -150,7 +152,10 @@ function ipopt(nlp :: AbstractNLPModel;
                                objective=problem.obj_val, dual_feas=dual_feas, iter=iter,
                                primal_feas=primal_feas, elapsed_time=Δt, multipliers=problem.mult_g,
                                multipliers_L=problem.mult_x_L, multipliers_U=problem.mult_x_U,
-                               solver_specific=Dict(:internal_msg => Ipopt.ApplicationReturnStatus[status])
+                               solver_specific=Dict(
+                                 :internal_msg => Ipopt.ApplicationReturnStatus[status],
+                                 :real_time => real_time
+                               )
                               )
 end
 
