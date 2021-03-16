@@ -20,7 +20,7 @@ f(x) = (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2
 ```
 and solve it with Ipopt:
 ```@example ex1
-using NLPModels, NLPModelsIpopt
+using ADNLPModels, NLPModels, NLPModelsIpopt
 
 nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
 stats = ipopt(nlp)
@@ -135,7 +135,7 @@ Random.seed!(0)
 # Training set
 m = 1000
 df = DataFrame(:age => rand(18:60, m), :salary => rand(40:180, m) * 1000)
-df[:buy] = (df.age .> 40 .+ randn(m) * 5) .| (df.salary .> 120_000 .+ randn(m) * 10_000)
+df.buy = (df.age .> 40 .+ randn(m) * 5) .| (df.salary .> 120_000 .+ randn(m) * 10_000)
 
 X = [ones(m) df.age df.age.^2 df.salary df.salary.^2 df.age .* df.salary]
 y = df.buy
@@ -148,7 +148,7 @@ stats = ipopt(nlp, print_level=0)
 # Test set - same generation method
 m = 100
 df = DataFrame(:age => rand(18:60, m), :salary => rand(40:180, m) * 1000)
-df[:buy] = (df.age .> 40 .+ randn(m) * 5) .| (df.salary .> 120_000 .+ randn(m) * 10_000)
+df.buy = (df.age .> 40 .+ randn(m) * 5) .| (df.salary .> 120_000 .+ randn(m) * 10_000)
 
 X = [ones(m) df.age df.age.^2 df.salary df.salary.^2 df.age .* df.salary]
 hβ = 1 ./ (1 .+ exp.(-X * β))
