@@ -2,7 +2,7 @@ module NLPModelsIpopt
 
 export ipopt
 
-using NLPModels, Ipopt, SolverTools
+using NLPModels, Ipopt, SolverCore
 
 const ipopt_statuses = Dict(0 => :first_order,
                             1 => :acceptable,

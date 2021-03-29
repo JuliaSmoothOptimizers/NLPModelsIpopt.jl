@@ -54,7 +54,7 @@ print(stats)
 
 ## Return value
 
-The return value of `ipopt` is a `GenericExecutionStats` instance from `SolverTools`. It contains basic information on the solution returned by the solver.
+The return value of `ipopt` is a `GenericExecutionStats` instance from `SolverCore`. It contains basic information on the solution returned by the solver.
 In addition to the built-in fields of `GenericExecutionStats`, we store the detailed Ipopt output message inside `solver_specific[:internal_msg]`.
 
 Here is an example using the constrained problem solve:
