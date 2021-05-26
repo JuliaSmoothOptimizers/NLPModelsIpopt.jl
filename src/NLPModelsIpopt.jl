@@ -113,6 +113,10 @@ function ipopt(nlp :: AbstractNLPModel;
     end
   end
 
+  if !nlp.meta.minimize
+    addOption(problem, "obj_scaling_factor", -1.0)
+  end
+
   if ipopt_log_to_file
     0 < ipopt_file_log_level < 3 && @warn("`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations")
   else

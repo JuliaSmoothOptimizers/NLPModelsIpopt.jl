@@ -46,6 +46,15 @@ function tests()
   @test isapprox(stats.multipliers_U, zU, rtol=1e-6)
   @test stats.iter == 0
   @test stats.status == :first_order
+
+  meta = NLPModelMeta(1, x0 = rand(1), lvar = zeros(1), uvar = ones(1), minimize = false)
+  nlp = ADNLPModel(meta, Counters(), ADNLPModels.ForwardDiffAD(), x -> x[1], x -> [])
+  stats = ipopt(nlp)
+  @test isapprox(stats.solution, ones(1), rtol=1e-6)
+  @test isapprox(stats.objective, 1.0, rtol=1e-6)
+  @test isapprox(stats.multipliers_L, zeros(1), atol=1e-6)
+  @test isapprox(stats.multipliers_U, -ones(1), rtol=1e-6)
+  @test stats.status == :first_order
 end
 
 tests()
