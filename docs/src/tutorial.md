@@ -82,11 +82,11 @@ with regularization ``\lambda \|\beta\|^2 / 2``.
 ```@example ex3
 using DataFrames, LinearAlgebra, NLPModels, NLPModelsIpopt, Random
 
-mutable struct LogisticRegression <: AbstractNLPModel
+mutable struct LogisticRegression <: AbstractNLPModel{Float64, Vector{Float64}}
   X :: Matrix
   y :: Vector
   λ :: Real
-  meta :: NLPModelMeta # required by AbstractNLPModel
+  meta :: NLPModelMeta{Float64, Vector{Float64}} # required by AbstractNLPModel
   counters :: Counters # required by AbstractNLPModel
 end
 
