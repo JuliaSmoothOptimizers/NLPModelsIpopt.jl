@@ -4,25 +4,27 @@ export ipopt
 
 using NLPModels, Ipopt, SolverCore
 
-const ipopt_statuses = Dict(0 => :first_order,
-                            1 => :acceptable,
-                            2 => :infeasible,
-                            3 => :small_step,
-                            #4 => Diverging iterates
-                            5 => :user,
-                            #6 => Feasible point found
-                            -1 => :max_iter,
-                            #-2 => Restoration failed
-                            #-3 => Error in step computation
-                            -4 => :max_time,
-                            #-10 => Not enough degress of freedom
-                            #-11 => Invalid problem definition
-                            #-12 => Invalid option
-                            #-13 => Invalid number detected
-                            -100 => :exception,
-                            -101 => :exception,
-                            -102 => :exception,
-                            -199 => :exception)
+const ipopt_statuses = Dict(
+  0 => :first_order,
+  1 => :acceptable,
+  2 => :infeasible,
+  3 => :small_step,
+  #4 => Diverging iterates
+  5 => :user,
+  #6 => Feasible point found
+  -1 => :max_iter,
+  #-2 => Restoration failed
+  #-3 => Error in step computation
+  -4 => :max_time,
+  #-10 => Not enough degress of freedom
+  #-11 => Invalid problem definition
+  #-12 => Invalid option
+  #-13 => Invalid number detected
+  -100 => :exception,
+  -101 => :exception,
+  -102 => :exception,
+  -199 => :exception,
+)
 
 """`output = ipopt(nlp; kwargs...)`
 
@@ -37,9 +39,7 @@ Solves the `NLPModel` problem `nlp` using `IpOpt`.
 All other keyword arguments will be passed to IpOpt as an option.
 See https://www.coin-or.org/Ipopt/documentation/node40.html for the list of options accepted.
 """
-function ipopt(nlp :: AbstractNLPModel;
-               callback :: Union{Function,Nothing} = nothing,
-               kwargs...)
+function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothing, kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
 
   eval_f(x) = obj(nlp, x)
@@ -58,18 +58,28 @@ function ipopt(nlp :: AbstractNLPModel;
       hess_structure!(nlp, rows, cols)
     else
       if nlp.meta.ncon > 0
-        hess_coord!(nlp, x, λ, values, obj_weight=σ)
+        hess_coord!(nlp, x, λ, values, obj_weight = σ)
       else
-        hess_coord!(nlp, x, values, obj_weight=σ)
+        hess_coord!(nlp, x, values, obj_weight = σ)
       end
     end
   end
 
-  problem = createProblem(n, nlp.meta.lvar, nlp.meta.uvar,
-                          m, nlp.meta.lcon, nlp.meta.ucon,
-                          nlp.meta.nnzj, nlp.meta.nnzh,
-                          eval_f, eval_g, eval_grad_f,
-                          eval_jac_g, eval_h)
+  problem = createProblem(
+    n,
+    nlp.meta.lvar,
+    nlp.meta.uvar,
+    m,
+    nlp.meta.lcon,
+    nlp.meta.ucon,
+    nlp.meta.nnzj,
+    nlp.meta.nnzh,
+    eval_f,
+    eval_g,
+    eval_grad_f,
+    eval_jac_g,
+    eval_h,
+  )
 
   kwargs = Dict(kwargs)
 
@@ -113,8 +123,14 @@ function ipopt(nlp :: AbstractNLPModel;
     end
   end
 
+  if !nlp.meta.minimize
+    addOption(problem, "obj_scaling_factor", -1.0)
+  end
+
   if ipopt_log_to_file
-    0 < ipopt_file_log_level < 3 && @warn("`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations")
+    0 < ipopt_file_log_level < 3 && @warn(
+      "`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations"
+    )
   else
     # log to file anyways to parse the output
     ipopt_log_file = tempname()
@@ -148,15 +164,23 @@ function ipopt(nlp :: AbstractNLPModel;
     end
   end
 
-  return GenericExecutionStats(get(ipopt_statuses, status, :unknown), nlp, solution=problem.x,
-                               objective=problem.obj_val, dual_feas=dual_feas, iter=iter,
-                               primal_feas=primal_feas, elapsed_time=Δt, multipliers=problem.mult_g,
-                               multipliers_L=problem.mult_x_L, multipliers_U=problem.mult_x_U,
-                               solver_specific=Dict(
-                                 :internal_msg => Ipopt.ApplicationReturnStatus[status],
-                                 :real_time => real_time
-                               )
-                              )
+  return GenericExecutionStats(
+    get(ipopt_statuses, status, :unknown),
+    nlp,
+    solution = problem.x,
+    objective = problem.obj_val,
+    dual_feas = dual_feas,
+    iter = iter,
+    primal_feas = primal_feas,
+    elapsed_time = Δt,
+    multipliers = problem.mult_g,
+    multipliers_L = problem.mult_x_L,
+    multipliers_U = problem.mult_x_U,
+    solver_specific = Dict(
+      :internal_msg => Ipopt.ApplicationReturnStatus[status],
+      :real_time => real_time,
+    ),
+  )
 end
 
 end # module
