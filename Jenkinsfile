@@ -49,7 +49,7 @@ pipeline {
 
      causeString: 'Triggered on $comment',
 
-     token: "",
+     token: "NLPModelsIpopt",
 
      printContributedVariables: true,
      printPostContent: true,
