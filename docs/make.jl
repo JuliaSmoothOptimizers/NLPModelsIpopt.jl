@@ -1,3 +1,4 @@
+ENV["GKSwstype"] = "100"
 using Documenter, NLPModelsIpopt
 
 makedocs(
