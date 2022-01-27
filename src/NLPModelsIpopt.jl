@@ -15,15 +15,16 @@ const ipopt_statuses = Dict(
   -1 => :max_iter,
   #-2 => Restoration failed
   #-3 => Error in step computation
-  -4 => :max_time,
+  -4 => :max_time, # Maximum cputime exceeded
+  -5 => :max_time, # Maximum walltime exceeded
   #-10 => Not enough degress of freedom
   #-11 => Invalid problem definition
   #-12 => Invalid option
   #-13 => Invalid number detected
-  -100 => :exception,
-  -101 => :exception,
-  -102 => :exception,
-  -199 => :exception,
+  -100 => :exception, # Unrecoverable exception
+  -101 => :exception, # NonIpopt exception thrown
+  -102 => :exception, # Insufficient memory
+  -199 => :exception, # Internal error
 )
 
 """`output = ipopt(nlp; kwargs...)`
@@ -55,16 +56,16 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
   eval_f(x) = obj(nlp, x)
   eval_g(x, g) = m > 0 ? cons!(nlp, x, g) : zeros(0)
   eval_grad_f(x, g) = grad!(nlp, x, g)
-  eval_jac_g(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
+  eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
     nlp.meta.ncon == 0 && return
-    if mode == :Structure
+    if values == nothing
       jac_structure!(nlp, rows, cols)
     else
       jac_coord!(nlp, x, values)
     end
   end
-  eval_h(x, mode, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
-    if mode == :Structure
+  eval_h(x, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
+    if values == nothing
       hess_structure!(nlp, rows, cols)
     else
       if nlp.meta.ncon > 0
@@ -75,7 +76,7 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
     end
   end
 
-  problem = createProblem(
+  problem = CreateIpoptProblem(
     n,
     nlp.meta.lvar,
     nlp.meta.uvar,
@@ -95,7 +96,7 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
 
   # see if user wants to warm start from an initial primal-dual guess
   if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL0, :zU0])
-    addOption(problem, "warm_start_init_point", "yes")
+    AddIpoptStrOption(problem, "warm_start_init_point", "yes")
     pop!(kwargs, :warm_start_init_point, nothing)  # in case the user passed this option
   end
   if :x0 ∈ keys(kwargs)
@@ -128,13 +129,19 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
       ipopt_log_to_file = true
     elseif k == :file_print_level
       ipopt_file_log_level = v
+    elseif typeof(v) <: Integer
+      AddIpoptIntOption(problem, string(k), v)
+    elseif typeof(v) <: Real
+      AddIpoptNumOption(problem, string(k), v)
+    elseif typeof(v) <: String
+      AddIpoptStrOption(problem, string(k), v)
     else
-      addOption(problem, string(k), v)
+      @warn "$k does not seem to be a valid Ipopt option."
     end
   end
 
   if !nlp.meta.minimize
-    addOption(problem, "obj_scaling_factor", -1.0)
+    AddIpoptNumOption(problem, "obj_scaling_factor", -1.0)
   end
 
   if ipopt_log_to_file
@@ -148,14 +155,14 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
     0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
   end
 
-  addOption(problem, "output_file", ipopt_log_file)
-  addOption(problem, "file_print_level", ipopt_file_log_level)
+  AddIpoptStrOption(problem, "output_file", ipopt_log_file)
+  AddIpoptIntOption(problem, "file_print_level", ipopt_file_log_level)
 
   # Callback
-  callback === nothing || setIntermediateCallback(problem, callback)
+  callback === nothing || SetIntermediateCallback(problem, callback)
 
   real_time = time()
-  status = solveProblem(problem)
+  status = IpoptSolve(problem)
   real_time = time() - real_time
   ipopt_output = readlines(ipopt_log_file)
 
@@ -187,7 +194,7 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
     multipliers_L = problem.mult_x_L,
     multipliers_U = problem.mult_x_U,
     solver_specific = Dict(
-      :internal_msg => Ipopt.ApplicationReturnStatus[status],
+      :internal_msg => Ipopt._STATUS_CODES[status],
       :real_time => real_time,
     ),
   )
