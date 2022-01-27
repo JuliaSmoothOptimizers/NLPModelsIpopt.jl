@@ -37,7 +37,17 @@ Solves the `NLPModel` problem `nlp` using `IpOpt`.
 * `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
 
 All other keyword arguments will be passed to IpOpt as an option.
-See https://www.coin-or.org/Ipopt/documentation/node40.html for the list of options accepted.
+See https://coin-or.github.io/Ipopt/OPTIONS.html for the list of options accepted.
+
+# Output
+The returned value is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Examples
+```
+using NLPModelsIpopt, ADNLPModels
+nlp = ADNLPModel(x -> sum(x.^2), ones(3));
+stats = ipopt(nlp, print_level = 0)
+```
 """
 function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothing, kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
