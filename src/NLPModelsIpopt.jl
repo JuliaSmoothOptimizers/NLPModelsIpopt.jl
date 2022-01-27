@@ -193,10 +193,7 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
     multipliers = problem.mult_g,
     multipliers_L = problem.mult_x_L,
     multipliers_U = problem.mult_x_U,
-    solver_specific = Dict(
-      :internal_msg => Ipopt._STATUS_CODES[status],
-      :real_time => real_time,
-    ),
+    solver_specific = Dict(:internal_msg => Ipopt._STATUS_CODES[status], :real_time => real_time),
   )
 end
 
