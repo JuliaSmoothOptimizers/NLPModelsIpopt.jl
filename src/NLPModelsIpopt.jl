@@ -170,7 +170,7 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
   dual_feas = primal_feas = Inf
   iter = -1
   for line in ipopt_output
-    if occursin("CPU secs", line)
+    if occursin("Total seconds", line)
       Δt += Meta.parse(split(line, "=")[2])
     elseif occursin("Dual infeasibility", line)
       dual_feas = Meta.parse(split(line)[4])
