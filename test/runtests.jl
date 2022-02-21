@@ -5,11 +5,13 @@ function tests()
   stats = ipopt(nlp, print_level = 0)
   @test isapprox(stats.solution, [1.0; 1.0], rtol = 1e-6)
   @test stats.status == :first_order
+  @test stats.elapsed_time > 0
 
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
   stats = ipopt(nlp, tol = 1e-12, print_level = 0)
   @test isapprox(stats.solution, [1.0; 1.0], rtol = 1e-6)
   @test stats.status == :first_order
+  @test stats.elapsed_time > 0
 
   # solve again from solution
   x0 = copy(stats.solution)
@@ -26,6 +28,7 @@ function tests()
   @test stats.status == :user
   @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
   @test stats.iter == 1
+  @test stats.elapsed_time > 0
 
   nlp =
     ADNLPModel(x -> (x[1] - 1)^2 + 4 * (x[2] - 3)^2, zeros(2), x -> [sum(x) - 1.0], [0.0], [0.0])
@@ -33,6 +36,7 @@ function tests()
   @test isapprox(stats.solution, [-1.4; 2.4], rtol = 1e-6)
   @test stats.iter == 1
   @test stats.status == :first_order
+  @test stats.elapsed_time > 0
 
   # solve constrained problem again from solution
   x0 = copy(stats.solution)
@@ -56,6 +60,7 @@ function tests()
   @test isapprox(stats.multipliers_L, zeros(1), atol = 1e-6)
   @test isapprox(stats.multipliers_U, -ones(1), rtol = 1e-6)
   @test stats.status == :first_order
+  @test stats.elapsed_time > 0
 end
 
 tests()
