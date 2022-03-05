@@ -31,7 +31,7 @@ For comparison, we present the same problem and output using JuMP:
 ```@example ex2
 using JuMP, Ipopt
 
-model = Model(with_optimizer(Ipopt.Optimizer))
+model = Model(Ipopt.Optimizer)
 x0 = [-1.2; 1.0]
 @variable(model, x[i=1:2], start=x0[i])
 @NLobjective(model, Min, (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2)
