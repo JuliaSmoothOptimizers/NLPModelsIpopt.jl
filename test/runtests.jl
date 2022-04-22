@@ -52,8 +52,8 @@ function tests()
   @test stats.status == :first_order
 
   x0, f = rand(1), x -> x[1]
-  meta = NLPModelMeta(1, x0 = x0, lvar = zeros(1), uvar = ones(1), minimize = false)
-  nlp = ADNLPModel(meta, Counters(), ADNLPModels.ForwardDiffAD(1, f, x0), f, x -> [])
+  nlp = ADNLPModel(f, x0, zeros(1), ones(1), minimize = false)
+  @test nlp.meta.minimize == false
   stats = ipopt(nlp, print_level = 0)
   @test isapprox(stats.solution, ones(1), rtol = 1e-6)
   @test isapprox(stats.objective, 1.0, rtol = 1e-6)
