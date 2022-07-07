@@ -19,4 +19,5 @@ deploydocs(
   repo = "github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl.git",
   target = "build",
   devbranch = "main",
+  push_preview = true,
 )
