@@ -181,20 +181,19 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
     end
   end
 
-  return GenericExecutionStats(
-    get(ipopt_statuses, status, :unknown),
-    nlp,
-    solution = problem.x,
-    objective = problem.obj_val,
-    dual_feas = dual_feas,
-    iter = iter,
-    primal_feas = primal_feas,
-    elapsed_time = Δt,
-    multipliers = problem.mult_g,
-    multipliers_L = problem.mult_x_L,
-    multipliers_U = problem.mult_x_U,
-    solver_specific = Dict(:internal_msg => Ipopt._STATUS_CODES[status], :real_time => real_time),
-  )
+  stats = GenericExecutionStats(nlp)
+  set_status!(stats, get(ipopt_statuses, status, :unknown))
+  set_solution!(stats, problem.x)
+  set_objective!(stats, problem.obj_val)
+  set_residuals!(stats, primal_feas, dual_feas)
+  set_iter!(stats, iter)
+  set_time!(stats, Δt)
+  zL = has_bounds(nlp) ? problem.mult_x_L : similar(nlp.meta.y0, 0)
+  zU = has_bounds(nlp) ? problem.mult_x_U : similar(nlp.meta.y0, 0)
+  set_multipliers!(stats, problem.mult_g, zL, zU)
+  set_solver_specific!(stats, :internal_msg, Ipopt._STATUS_CODES[status])
+  set_solver_specific!(stats, :real_time, real_time)
+  stats
 end
 
 end # module
