@@ -41,13 +41,16 @@ function tests()
   # solve constrained problem again from solution
   x0 = copy(stats.solution)
   y0 = copy(stats.multipliers)
-  zL = copy(stats.multipliers_L)
-  zU = copy(stats.multipliers_U)
+  # Ipopt wants zL and zU of size n, whether there are bounds or not
+  zL = has_bounds(nlp) ? copy(stats.multipliers_L) : zeros(nlp.meta.nvar)
+  zU = has_bounds(nlp) ? copy(stats.multipliers_U) : zeros(nlp.meta.nvar)
   stats = ipopt(nlp, x0 = x0, y0 = y0, zL0 = zL, zU0 = zU, print_level = 0)
   @test isapprox(stats.solution, x0, rtol = 1e-6)
   @test isapprox(stats.multipliers, y0, rtol = 1e-6)
-  @test isapprox(stats.multipliers_L, zL, rtol = 1e-6)
-  @test isapprox(stats.multipliers_U, zU, rtol = 1e-6)
+  if has_bounds(nlp)
+    @test isapprox(stats.multipliers_L, zL, rtol = 1e-6)
+    @test isapprox(stats.multipliers_U, zU, rtol = 1e-6)
+  end
   @test stats.iter == 0
   @test stats.status == :first_order
 
