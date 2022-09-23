@@ -188,9 +188,10 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
   set_residuals!(stats, primal_feas, dual_feas)
   set_iter!(stats, iter)
   set_time!(stats, Δt)
-  zL = has_bounds(nlp) ? problem.mult_x_L : similar(nlp.meta.y0, 0)
-  zU = has_bounds(nlp) ? problem.mult_x_U : similar(nlp.meta.y0, 0)
-  set_multipliers!(stats, problem.mult_g, zL, zU)
+  set_constraint_multipliers!(stats, problem.mult_g)
+  if has_bounds(nlp)
+    set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
+  end
   set_solver_specific!(stats, :internal_msg, Ipopt._STATUS_CODES[status])
   set_solver_specific!(stats, :real_time, real_time)
   stats
