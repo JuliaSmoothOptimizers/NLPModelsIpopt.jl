@@ -1,6 +1,6 @@
 module NLPModelsIpopt
 
-export ipopt
+export ipopt, IpoptSolver, reset!, solve!
 
 using NLPModels, Ipopt, SolverCore
 
@@ -27,34 +27,72 @@ const ipopt_statuses = Dict(
   -199 => :exception, # Internal error
 )
 
-"""`output = ipopt(nlp; kwargs...)`
-
-Solves the `NLPModel` problem `nlp` using `IpOpt`.
-
-# Optional keyword arguments
-* `x0`: a vector of size `nlp.meta.nvar` to specify an initial primal guess
-* `y0`: a vector of size `nlp.meta.ncon` to specify an initial dual guess for the general constraints
-* `zL`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the lower bound constraints
-* `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
-
-All other keyword arguments will be passed to IpOpt as an option.
-See https://coin-or.github.io/Ipopt/OPTIONS.html for the list of options accepted.
-
-# Output
-The returned value is a `GenericExecutionStats`, see `SolverCore.jl`.
-
-# Examples
-```
-using NLPModelsIpopt, ADNLPModels
-nlp = ADNLPModel(x -> sum(x.^2), ones(3));
-stats = ipopt(nlp, print_level = 0)
-```
 """
-function ipopt(nlp::AbstractNLPModel; callback = (args...) -> true, kwargs...)
-  n, m = nlp.meta.nvar, nlp.meta.ncon
+    IpoptSolver(nlp; kwargs...,)
+
+Returns an `IpoptSolver` structure to solve the problem `nlp` with `ipopt`.
+"""
+mutable struct IpoptSolver <: AbstractOptimizationSolver
+  problem::IpoptProblem
+end
+
+function IpoptSolver(nlp::AbstractNLPModel)
+  eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
+
+  problem = CreateIpoptProblem(
+    nlp.meta.nvar,
+    nlp.meta.lvar,
+    nlp.meta.uvar,
+    nlp.meta.ncon,
+    nlp.meta.lcon,
+    nlp.meta.ucon,
+    nlp.meta.nnzj,
+    nlp.meta.nnzh,
+    eval_f,
+    eval_g,
+    eval_grad_f,
+    eval_jac_g,
+    eval_h,
+  )
+  return IpoptSolver(problem)
+end
+
+"""
+    solver = reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
+
+Reset the `solver` with the new model `nlp`.
+
+If `nlp` has different bounds on the variables/constraints or a different number of nonzeros elements in the Jacobian/Hessian, then you need to create a new `IpoptSolver`.
+"""
+function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
+  problem = solver.problem
+  @assert nlp.meta.nvar == problem.n
+  @assert nlp.meta.ncon == problem.m
+
+  problem.obj_val = 0.0
+  problem.status = 0
+  problem.x .= nlp.meta.x0
+  eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
+  problem.eval_f = eval_f
+  problem.eval_g = eval_g
+  problem.eval_grad_f = eval_grad_f
+  problem.eval_jac_g = eval_jac_g
+  problem.eval_h = eval_h
+  problem.intermediate = nothing
+
+  # TODO: reset problem.ipopt_problem
+  return problem
+end
+
+"""
+    set_callbacks(nlp::AbstractNLPModel)
+
+Return the set of functions needed to instantiate an `IpoptProblem`.
+"""
+function set_callbacks(nlp::AbstractNLPModel)
 
   eval_f(x) = obj(nlp, x)
-  eval_g(x, g) = m > 0 ? cons!(nlp, x, g) : zeros(0)
+  eval_g(x, g) = nlp.meta.ncon > 0 ? cons!(nlp, x, g) : zeros(0)
   eval_grad_f(x, g) = grad!(nlp, x, g)
   eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
     nlp.meta.ncon == 0 && return
@@ -76,22 +114,60 @@ function ipopt(nlp::AbstractNLPModel; callback = (args...) -> true, kwargs...)
     end
   end
 
-  problem = CreateIpoptProblem(
-    n,
-    nlp.meta.lvar,
-    nlp.meta.uvar,
-    m,
-    nlp.meta.lcon,
-    nlp.meta.ucon,
-    nlp.meta.nnzj,
-    nlp.meta.nnzh,
-    eval_f,
-    eval_g,
-    eval_grad_f,
-    eval_jac_g,
-    eval_h,
-  )
+  return eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h
+end
 
+"""
+    output = ipopt(nlp; kwargs...)
+
+Solves the `NLPModel` problem `nlp` using `IpOpt`.
+
+For advanced usage, first define a `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
+    solver = IpoptSolver(nlp)
+    solve!(solver, nlp; kwargs...)
+    solve!(solver, nlp, stats; kwargs...)
+
+# Optional keyword arguments
+* `x0`: a vector of size `nlp.meta.nvar` to specify an initial primal guess
+* `y0`: a vector of size `nlp.meta.ncon` to specify an initial dual guess for the general constraints
+* `zL`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the lower bound constraints
+* `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
+
+All other keyword arguments will be passed to IpOpt as an option.
+See https://coin-or.github.io/Ipopt/OPTIONS.html for the list of options accepted.
+
+# Output
+The returned value is a `GenericExecutionStats`, see `SolverCore.jl`.
+
+# Examples
+```
+using NLPModelsIpopt, ADNLPModels
+nlp = ADNLPModel(x -> sum(x.^2), ones(3));
+stats = ipopt(nlp, print_level = 0)
+```
+
+```
+using NLPModelsIpopt, ADNLPModels
+nlp = ADNLPModel(x -> sum(x.^2), ones(3));
+solver = IpoptSolver(nlp);
+stats = solve!(solver, nlp, print_level = 0)
+```
+"""
+function ipopt(nlp::AbstractNLPModel; kwargs...)
+  solver = IpoptSolver(nlp)
+  stats = GenericExecutionStats(nlp)
+  return solve!(solver, nlp, stats; kwargs...)
+end
+
+function SolverCore.solve!(
+  solver::IpoptSolver,
+  nlp::AbstractNLPModel,
+  stats::GenericExecutionStats;
+  callback::Union{Function, Nothing} = nothing,
+  kwargs...,
+)
+  problem = solver.problem
+  reset!(stats)
   kwargs = Dict(kwargs)
 
   # see if user wants to warm start from an initial primal-dual guess
@@ -181,7 +257,6 @@ function ipopt(nlp::AbstractNLPModel; callback = (args...) -> true, kwargs...)
     end
   end
 
-  stats = GenericExecutionStats(nlp)
   set_status!(stats, get(ipopt_statuses, status, :unknown))
   set_solution!(stats, problem.x)
   set_objective!(stats, problem.obj_val)
