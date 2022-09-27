@@ -159,7 +159,7 @@ function ipopt(nlp::AbstractNLPModel; callback = (args...) -> true, kwargs...)
   AddIpoptIntOption(problem, "file_print_level", ipopt_file_log_level)
 
   # Callback
-  callback === SetIntermediateCallback(problem, callback)
+  SetIntermediateCallback(problem, callback)
 
   real_time = time()
   status = IpoptSolve(problem)
