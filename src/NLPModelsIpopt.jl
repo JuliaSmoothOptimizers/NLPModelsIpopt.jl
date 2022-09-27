@@ -50,7 +50,7 @@ nlp = ADNLPModel(x -> sum(x.^2), ones(3));
 stats = ipopt(nlp, print_level = 0)
 ```
 """
-function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothing, kwargs...)
+function ipopt(nlp::AbstractNLPModel; callback = (args...) -> true, kwargs...)
   n, m = nlp.meta.nvar, nlp.meta.ncon
 
   eval_f(x) = obj(nlp, x)
@@ -159,7 +159,7 @@ function ipopt(nlp::AbstractNLPModel; callback::Union{Function, Nothing} = nothi
   AddIpoptIntOption(problem, "file_print_level", ipopt_file_log_level)
 
   # Callback
-  callback === nothing || SetIntermediateCallback(problem, callback)
+  callback === SetIntermediateCallback(problem, callback)
 
   real_time = time()
   status = IpoptSolve(problem)
