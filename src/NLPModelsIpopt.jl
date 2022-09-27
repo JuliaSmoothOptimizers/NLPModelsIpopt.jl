@@ -163,7 +163,7 @@ function SolverCore.solve!(
   solver::IpoptSolver,
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats;
-  callback::Union{Function, Nothing} = nothing,
+  callback = (args...) -> true,
   kwargs...,
 )
   problem = solver.problem
