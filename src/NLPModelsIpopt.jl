@@ -90,7 +90,6 @@ end
 Return the set of functions needed to instantiate an `IpoptProblem`.
 """
 function set_callbacks(nlp::AbstractNLPModel)
-
   eval_f(x) = obj(nlp, x)
   eval_g(x, g) = nlp.meta.ncon > 0 ? cons!(nlp, x, g) : zeros(0)
   eval_grad_f(x, g) = grad!(nlp, x, g)
