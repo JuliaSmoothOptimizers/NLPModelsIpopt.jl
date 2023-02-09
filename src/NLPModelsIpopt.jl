@@ -158,6 +158,8 @@ function ipopt(nlp::AbstractNLPModel; kwargs...)
   return solve!(solver, nlp, stats; kwargs...)
 end
 
+const TEMP_FILES = []
+
 function SolverCore.solve!(
   solver::IpoptSolver,
   nlp::AbstractNLPModel,
@@ -226,6 +228,7 @@ function SolverCore.solve!(
   else
     # log to file anyways to parse the output
     ipopt_log_file = tempname()
+    push!(TEMP_FILES, ipopt_log_file)
     # make sure the user didn't specify a file log level without a file name
     0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
   end
