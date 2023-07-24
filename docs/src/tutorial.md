@@ -52,6 +52,16 @@ stats = ipopt(nlp, print_level=0)
 print(stats)
 ```
 
+## Linear solvers
+
+Ipopt supports multiple linear solvers, the default one is [`MUMPS`](https://mumps-solver.org/) but you can modify the linear solver with the keyword argument `linear_solver`.
+We provide an example with the linear solvers `MA27` and `MA57`:
+```
+using HSL_jll
+stats_ma27 = ipopt(nlp, linear_solver="ma27")
+stats_ma57 = ipopt(nlp, linear_solver="ma57")
+```
+
 ## Return value
 
 The return value of `ipopt` is a `GenericExecutionStats` instance from `SolverCore`. It contains basic information on the solution returned by the solver.
