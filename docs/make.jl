@@ -4,7 +4,7 @@ using Documenter, NLPModelsIpopt
 makedocs(
   modules = [NLPModelsIpopt],
   doctest = true,
-  strict = true,
+  linkcheck = true,
   format = Documenter.HTML(
     prettyurls = get(ENV, "CI", nothing) == "true",
     assets = ["assets/style.css"],
@@ -14,10 +14,7 @@ makedocs(
 )
 
 deploydocs(
-  deps = nothing,
-  make = nothing,
   repo = "github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl.git",
-  target = "build",
   devbranch = "main",
   push_preview = true,
 )
