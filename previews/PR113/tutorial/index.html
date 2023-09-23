@@ -4,7 +4,7 @@ nlp = ADNLPModel(x -&gt; sum(x.^2), ones(3));
 stats = ipopt(nlp, print_level = 0)</code></pre><pre><code class="nohighlight hljs">using NLPModelsIpopt, ADNLPModels
 nlp = ADNLPModel(x -&gt; sum(x.^2), ones(3));
 solver = IpoptSolver(nlp);
-stats = solve!(solver, nlp, print_level = 0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/e445a6c86f028335f05f1295fc75bfaa661f67ef/src/NLPModelsIpopt.jl#L119-L154">source</a></section></article><p>Let&#39;s create an NLPModel for the Rosenbrock function</p><p class="math-container">\[f(x) = (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2\]</p><p>and solve it with Ipopt:</p><pre><code class="language-julia hljs">using ADNLPModels, NLPModels, NLPModelsIpopt
+stats = solve!(solver, nlp, print_level = 0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/16f7779b120ca0a6afb5bf3e2176d3fbfe1f1cbd/src/NLPModelsIpopt.jl#L119-L154">source</a></section></article><p>Let&#39;s create an NLPModel for the Rosenbrock function</p><p class="math-container">\[f(x) = (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2\]</p><p>and solve it with Ipopt:</p><pre><code class="language-julia hljs">using ADNLPModels, NLPModels, NLPModelsIpopt
 
 nlp = ADNLPModel(x -&gt; (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
 stats = ipopt(nlp)
@@ -75,7 +75,7 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total seconds in IPOPT                               = 12.358
+Total seconds in IPOPT                               = 11.851
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
@@ -85,9 +85,9 @@ Generic Execution stats
   dual feasibility: 3.732500974666708e-10
   solution: [0.9999999999400667  0.9999999998789006]
   iterations: 21
-  elapsed time: 12.358
+  elapsed time: 11.851
   solver specific:
-    real_time: 12.358448028564453
+    real_time: 11.851512908935547
     internal_msg: :Solve_Succeeded</code></pre><p>For comparison, we present the same problem and output using JuMP:</p><pre><code class="language-julia hljs">using JuMP, Ipopt
 
 model = Model(Ipopt.Optimizer)
@@ -173,9 +173,9 @@ print(stats)</code></pre><pre class="documenter-example-output"><code class="noh
   solution: [-0.9505563573613093  0.9139008176388945  0.9890905176644905  0.9985592422681151 ⋯ 0.999999930070643]
   multipliers: [4.1358568305002255  -1.8764949037033418  -0.06556333356358672  -0.021931863018312868 ⋯ -7.3765921628237065e-6]
   iterations: 6
-  elapsed time: 19.651
+  elapsed time: 18.931
   solver specific:
-    real_time: 19.651567935943604
+    real_time: 18.931169033050537
     internal_msg: :Solve_Succeeded</code></pre><h2 id="Return-value"><a class="docs-heading-anchor" href="#Return-value">Return value</a><a id="Return-value-1"></a><a class="docs-heading-anchor-permalink" href="#Return-value" title="Permalink"></a></h2><p>The return value of <code>ipopt</code> is a <code>GenericExecutionStats</code> instance from <code>SolverCore</code>. It contains basic information on the solution returned by the solver. In addition to the built-in fields of <code>GenericExecutionStats</code>, we store the detailed Ipopt output message inside <code>solver_specific[:internal_msg]</code>.</p><p>Here is an example using the constrained problem solve:</p><pre><code class="language-julia hljs">stats.solver_specific[:internal_msg]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">:Solve_Succeeded</code></pre><h2 id="Manual-input"><a class="docs-heading-anchor" href="#Manual-input">Manual input</a><a id="Manual-input-1"></a><a class="docs-heading-anchor-permalink" href="#Manual-input" title="Permalink"></a></h2><p>In this section, we work through an example where we specify the problem and its derivatives manually. For this, we need to implement the following <code>NLPModel</code> API methods:</p><ul><li><code>obj(nlp, x)</code>: evaluate the objective value at <code>x</code>;</li><li><code>grad!(nlp, x, g)</code>: evaluate the objective gradient at <code>x</code>;</li><li><code>cons!(nlp, x, c)</code>: evaluate the vector of constraints, if any;</li><li><code>jac_structure!(nlp, rows, cols)</code>: fill <code>rows</code> and <code>cols</code> with the spartity structure of the Jacobian, if the problem is constrained;</li><li><code>jac_coord!(nlp, x, vals)</code>: fill <code>vals</code> with the Jacobian values corresponding to the sparsity structure returned by <code>jac_structure!()</code>;</li><li><code>hess_structure!(nlp, rows, cols)</code>: fill <code>rows</code> and <code>cols</code> with the spartity structure of the lower triangle of the Hessian of the Lagrangian;</li><li><code>hess_coord!(nlp, x, y, vals; obj_weight=1.0)</code>: fill <code>vals</code> with the values of the Hessian of the Lagrangian corresponding to the sparsity structure returned by <code>hess_structure!()</code>, where <code>obj_weight</code> is the weight assigned to the objective, and <code>y</code> is the vector of multipliers.</li></ul><p>The model that we implement is a logistic regression model. We consider the model <span>$h(\beta; x) = (1 + e^{-\beta^Tx})^{-1}$</span>, and the loss function</p><p class="math-container">\[\ell(\beta) = -\sum_{i = 1}^m y_i \ln h(\beta; x_i) + (1 - y_i) \ln(1 - h(\beta; x_i))\]</p><p>with regularization <span>$\lambda \|\beta\|^2 / 2$</span>.</p><pre><code class="language-julia hljs">using DataFrames, LinearAlgebra, NLPModels, NLPModelsIpopt, Random
 
 mutable struct LogisticRegression &lt;: AbstractNLPModel{Float64, Vector{Float64}}
@@ -259,4 +259,4 @@ P = findall(df.buy .== true)
 scatter(df.age[P], df.salary[P], c=:blue, m=:square)
 P = findall(df.buy .== false)
 scatter!(df.age[P], df.salary[P], c=:red, m=:xcross, ms=7)
-contour!(range(18, 60, step=0.1), range(40_000, 180_000, step=1.0), f, levels=[0.5])</code></pre><p><img src="../ex3.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../tips/">Performance tips »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.1 on <span class="colophon-date" title="Saturday 23 September 2023 03:20">Saturday 23 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+contour!(range(18, 60, step=0.1), range(40_000, 180_000, step=1.0), f, levels=[0.5])</code></pre><p><img src="../ex3.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../tips/">Performance tips »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.0.1 on <span class="colophon-date" title="Saturday 23 September 2023 16:31">Saturday 23 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
