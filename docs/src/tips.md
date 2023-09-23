@@ -24,7 +24,7 @@ stats_ma57 = ipopt(nlp, linear_solver="ma57")
 
 ### SPRAL
 
-If you use Ipopt.jl with Julia ≥ v1.9, the linear solver [SPRAL](https://github.com/ralna/spral) is available.
+If you use NLPModelsIpopt.jl with Julia ≥ v1.9, the linear solver [SPRAL](https://github.com/ralna/spral) is available.
 You can use it by setting the `linear_solver` attribute:
 ```julia
 using NLPModelsIpopt
@@ -39,7 +39,7 @@ export OMP_PROC_BIND=TRUE
 ## BLAS and LAPACK
 
 With Julia v1.9 or later, Ipopt and the linear solvers [MUMPS](https://mumps-solver.org/index.php)
-(default), SPRAL, and HSL are compiled with
+(default), [SPRAL](https://github.com/ralna/spral), and [HSL](https://licences.stfc.ac.uk/product/julia-hsl) are compiled with
 [`libblastrampoline`](https://github.com/JuliaLinearAlgebra/libblastrampoline)
 (LBT), a library that can change between BLAS and LAPACK backends at runtime.
 
@@ -57,16 +57,16 @@ switch to MKL by adding `using MKL` to your code:
 
 ```julia
 using MKL  # Replace OpenBLAS by Intel MKL
-using Ipopt
+using NLPModelsIpopt
 ```
 
 ### AppleAccelerate
 
-If you are using macOS and you have [AppleAccelerate.jl](https://github.com/JuliaLinearAlgebra/AppleAccelerate.jl) installed, add adding `using AppleAccelerate` to your code:
+If you are using macOS ≥ v13.4 and you have [AppleAccelerate.jl](https://github.com/JuliaLinearAlgebra/AppleAccelerate.jl) installed, you can replace OpenBLAS as follows:
 
 ```julia
 using AppleAccelerate  # Replace OpenBLAS by Apple Accelerate
-using Ipopt
+using NLPModelsIpopt
 ```
 
 ### Display backends
