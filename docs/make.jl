@@ -10,10 +10,12 @@ makedocs(
     assets = ["assets/style.css"],
   ),
   sitename = "NLPModelsIpopt.jl",
-  pages = ["Home" => "index.md",
-           "Tutorial" => "tutorial.md",
-           "Performance tips" => "tips.md",
-           "Reference" => "reference.md"],
+  pages = [
+    "Home" => "index.md",
+    "Tutorial" => "tutorial.md",
+    "Performance tips" => "tips.md",
+    "Reference" => "reference.md",
+  ],
 )
 
 deploydocs(
