@@ -2,7 +2,7 @@
 
 ## How to Cite
 
- If you use NLPModelsIpopt.jl in your work, please cite using the format given in [CITATION.bib](https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/CITATION.bib).
+ If you use NLPModelsIpopt.jl in your work, please cite using the format given in [CITATION.cff](https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/main/CITATION.cff).
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2629034.svg)](https://doi.org/10.5281/zenodo.2629034)
 [![Documentation](https://img.shields.io/badge/docs-stable-3f51b5.svg)](https://JuliaSmoothOptimizers.github.io/NLPModelsIpopt.jl/stable)
