@@ -1,0 +1,36 @@
+name: bmark_M1
+on:
+  pull_request_target:
+    types:
+      - labeled
+jobs:
+  bmark:
+    name: Julia ${{ matrix.version }} - macOS - ${{ matrix.arch }} - ${{ github.event_name }}
+    if: contains(github.event.pull_request.labels.*.name, 'benchmarks')
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 1
+        arch:
+          - aarch64
+    steps:
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Install benchmark dependencies
+        run: julia --project=benchmark -e 'using Pkg; Pkg.instantiate()'
+      - name: Run benchmarks
+        run: julia --project=benchmark benchmark/run_benchmarks.jl ${{ github.event.repository.name }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: benchmarks
+          path: |
+            *.svg
+            *.jld2
+            *.json
