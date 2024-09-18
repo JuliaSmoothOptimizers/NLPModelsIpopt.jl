@@ -133,7 +133,7 @@ For advanced usage, first define a `IpoptSolver` to preallocate the memory used 
 * `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
 
 All other keyword arguments will be passed to IpOpt as an option.
-See https://coin-or.github.io/Ipopt/OPTIONS.html for the list of options accepted.
+See [https://coin-or.github.io/Ipopt/OPTIONS.html](https://coin-or.github.io/Ipopt/OPTIONS.html) for the list of options accepted.
 
 # Output
 The returned value is a `GenericExecutionStats`, see `SolverCore.jl`.
