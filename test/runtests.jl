@@ -40,7 +40,7 @@ function tests()
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
   stats = ipopt(nlp, tol = 1e-12, callback = callback, print_level = 0)
   @test stats.status == :user
-  @test first(stats.solver_specific[:internal_msg]) == stats.solver_specific[:internal_msg] == :User_Requested_Stop
+  @test first(stats.solver_specific[:internal_msg]) == :User_Requested_Stop
   @test stats.iter == 1
   @test stats.elapsed_time > 0
 
