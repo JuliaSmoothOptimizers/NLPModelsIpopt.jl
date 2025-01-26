@@ -1,4 +1,4 @@
-using ADNLPModels, NLPModelsIpopt, NLPModels, Ipopt, SolverCore, Test
+using ADNLPModels, NLPModelsIpopt, NLPModels, SolverCore, Test
 
 @testset "Restart NLPModelsIpopt" begin
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
