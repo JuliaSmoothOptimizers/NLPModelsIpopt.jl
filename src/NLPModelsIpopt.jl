@@ -2,7 +2,17 @@ module NLPModelsIpopt
 
 export ipopt, IpoptSolver, reset!, solve!
 
-using NLPModels, Ipopt, SolverCore
+using Ipopt_jll, NLPModels, SolverCore
+import LinearAlgebra, OpenBLAS32_jll
+
+function __init__()
+  config = LinearAlgebra.BLAS.lbt_get_config()
+  if !any(lib -> lib.interface == :lp64, config.loaded_libs)
+    LinearAlgebra.BLAS.lbt_forward(OpenBLAS32_jll.libopenblas_path)
+  end
+end
+
+include("C_wrapper.jl")
 
 const ipopt_statuses = Dict(
   0 => :first_order,
@@ -25,6 +35,28 @@ const ipopt_statuses = Dict(
   -101 => :exception, # NonIpopt exception thrown
   -102 => :exception, # Insufficient memory
   -199 => :exception, # Internal error
+)
+const _STATUS_CODES = Dict{Int,Symbol}(
+    0 => :Solve_Succeeded,
+    1 => :Solved_To_Acceptable_Level,
+    2 => :Infeasible_Problem_Detected,
+    3 => :Search_Direction_Becomes_Too_Small,
+    4 => :Diverging_Iterates,
+    5 => :User_Requested_Stop,
+    6 => :Feasible_Point_Found,
+    -1 => :Maximum_Iterations_Exceeded,
+    -2 => :Restoration_Failed,
+    -3 => :Error_In_Step_Computation,
+    -4 => :Maximum_CpuTime_Exceeded,
+    -5 => :Maximum_WallTime_Exceeded,
+    -10 => :Not_Enough_Degrees_Of_Freedom,
+    -11 => :Invalid_Problem_Definition,
+    -12 => :Invalid_Option,
+    -13 => :Invalid_Number_Detected,
+    -100 => :Unrecoverable_Exception,
+    -101 => :NonIpopt_Exception_Thrown,
+    -102 => :Insufficient_Memory,
+    -199 => :Internal_Error,
 )
 
 """
@@ -266,7 +298,7 @@ function SolverCore.solve!(
   if has_bounds(nlp)
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
-  set_solver_specific!(stats, :internal_msg, Ipopt._STATUS_CODES[status])
+  set_solver_specific!(stats, :internal_msg, _STATUS_CODES[status])
   set_solver_specific!(stats, :real_time, real_time)
   stats
 end
