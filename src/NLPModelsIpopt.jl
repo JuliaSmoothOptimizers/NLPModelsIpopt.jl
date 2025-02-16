@@ -239,35 +239,45 @@ function SolverCore.solve!(
   real_time = time()
   status = IpoptSolve(problem)
   real_time = time() - real_time
-  ipopt_output = readlines(ipopt_log_file)
-
-  Δt = 0.0
-  dual_feas = primal_feas = Inf
-  iter = -1
-  for line in ipopt_output
-    if occursin("Total seconds", line)
-      Δt += Meta.parse(split(line, "=")[2])
-    elseif occursin("Dual infeasibility", line)
-      dual_feas = Meta.parse(split(line)[4])
-    elseif occursin("Constraint violation", line)
-      primal_feas = Meta.parse(split(line)[4])
-    elseif occursin("Number of Iterations....", line)
-      iter = Meta.parse(split(line)[4])
-    end
-  end
 
   set_status!(stats, get(ipopt_statuses, status, :unknown))
   set_solution!(stats, problem.x)
   set_objective!(stats, problem.obj_val)
-  set_residuals!(stats, primal_feas, dual_feas)
-  set_iter!(stats, iter)
-  set_time!(stats, Δt)
   set_constraint_multipliers!(stats, problem.mult_g)
   if has_bounds(nlp)
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
   set_solver_specific!(stats, :internal_msg, Ipopt._STATUS_CODES[status])
   set_solver_specific!(stats, :real_time, real_time)
+
+  try
+    ipopt_output = readlines(ipopt_log_file)
+
+    Δt = 0.0
+    dual_feas = primal_feas = Inf
+    iter = -1
+    for line in ipopt_output
+      if occursin("Total seconds", line)
+        Δt += Meta.parse(split(line, "=")[2])
+      elseif occursin("Dual infeasibility", line)
+        dual_feas = Meta.parse(split(line)[4])
+      elseif occursin("Constraint violation", line)
+        primal_feas = Meta.parse(split(line)[4])
+      elseif occursin("Number of Iterations....", line)
+        iter = Meta.parse(split(line)[4])
+      end
+    end
+    set_residuals!(stats, primal_feas, dual_feas)
+    set_iter!(stats, iter)
+    set_time!(stats, Δt)
+  catch e
+    @warn("could not parse Ipopt log file. $e")
+    stats.primal_residual_reliable = false  
+    stats.dual_residual_reliable = false
+    stats.iter_reliable = false
+    stats.time_reliable = false
+  end
+
   stats
 end
 
