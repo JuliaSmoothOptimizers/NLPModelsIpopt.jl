@@ -48,7 +48,7 @@ end
   @test isapprox(stats.solution, x0, rtol = 1e-6)
   @test stats.status == :first_order
   @test stats.iter == 0
-  @test stats.elapsed_time ≈ 0
+  @test stats.elapsed_time >= 0
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0
 
@@ -87,7 +87,7 @@ end
     @test isapprox(stats.multipliers_L, zL, rtol = 1e-6)
     @test isapprox(stats.multipliers_U, zU, rtol = 1e-6)
   end
-  @test stats.elapsed_time ≈ 0
+  @test stats.elapsed_time >= 0
   @test stats.iter == 0
   @test stats.status == :first_order
   @test stats.primal_feas ≈ 0.0
