@@ -272,7 +272,7 @@ function SolverCore.solve!(
     set_time!(stats, Δt)
   catch e
     @warn("could not parse Ipopt log file. $e")
-    stats.primal_residual_reliable = false  
+    stats.primal_residual_reliable = false
     stats.dual_residual_reliable = false
     stats.iter_reliable = false
     stats.time_reliable = false
