@@ -13,7 +13,7 @@ using ADNLPModels, NLPModelsIpopt, NLPModels, Ipopt, SolverCore, Test
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
 
   nlp = ADNLPModel(x -> (x[1])^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-  reset!(solver, nlp)
+  SolverCore.reset!(solver, nlp)
   stats = solve!(solver, nlp, stats, print_level = 0)
   @test isapprox(stats.solution, [0.0; 0.0], atol = 1e-6)
   @test stats.status == :first_order

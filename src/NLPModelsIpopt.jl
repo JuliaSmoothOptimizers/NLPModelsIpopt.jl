@@ -166,7 +166,7 @@ function SolverCore.solve!(
   kwargs...,
 )
   problem = solver.problem
-  reset!(stats)
+  SolverCore.reset!(stats)
   kwargs = Dict(kwargs)
 
   # see if user wants to warm start from an initial primal-dual guess
