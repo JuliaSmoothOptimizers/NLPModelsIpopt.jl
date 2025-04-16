@@ -27,6 +27,29 @@ const ipopt_statuses = Dict(
   -199 => :exception, # Internal error
 )
 
+const ipopt_internal_statuses = Dict(
+  0 => :Solve_Succeeded,
+  1 => :Solved_To_Acceptable_Level,
+  2 => :Infeasible_Problem_Detected,
+  3 => :Search_Direction_Becomes_Too_Small,
+  4 => :Diverging_Iterates,
+  5 => :User_Requested_Stop,
+  6 => :Feasible_Point_Found,
+  -1 => :Maximum_Iterations_Exceeded,
+  -2 => :Restoration_Failed,
+  -3 => :Error_In_Step_Computation,
+  -4 => :Maximum_CpuTime_Exceeded,
+  -5 => :Maximum_WallTime_Exceeded,
+  -10 => :Not_Enough_Degrees_Of_Freedom,
+  -11 => :Invalid_Problem_Definition,
+  -12 => :Invalid_Option,
+  -13 => :Invalid_Number_Detected,
+  -100 => :Unrecoverable_Exception,
+  -101 => :NonIpopt_Exception_Thrown,
+  -102 => :Insufficient_Memory,
+  -199 => :Internal_Error,
+)
+
 """
     IpoptSolver(nlp; kwargs...,)
 
@@ -132,7 +155,7 @@ For advanced usage, first define a `IpoptSolver` to preallocate the memory used 
 * `zL`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the lower bound constraints
 * `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
 
-All other keyword arguments will be passed to IpOpt as an option.
+All other keyword arguments will be passed to Ipopt as an option.
 See [https://coin-or.github.io/Ipopt/OPTIONS.html](https://coin-or.github.io/Ipopt/OPTIONS.html) for the list of options accepted.
 
 # Output
@@ -247,7 +270,7 @@ function SolverCore.solve!(
   if has_bounds(nlp)
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
-  set_solver_specific!(stats, :internal_msg, Ipopt._STATUS_CODES[status])
+  set_solver_specific!(stats, :internal_msg, ipopt_internal_statuses[status])
   set_solver_specific!(stats, :real_time, real_time)
 
   try
