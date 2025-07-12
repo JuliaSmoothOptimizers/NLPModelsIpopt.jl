@@ -1,6 +1,6 @@
 module NLPModelsIpopt
 
-export ipopt, IpoptSolver, reset!, solve!
+export ipopt, IpoptSolver, reset!, solve!, FeasibilityFormNLS
 
 using NLPModels, Ipopt, SolverCore
 
@@ -181,6 +181,33 @@ function ipopt(nlp::AbstractNLPModel; kwargs...)
   return solve!(solver, nlp, stats; kwargs...)
 end
 
+"""
+    ipopt(nls::AbstractNLSModel; kwargs...)
+
+Solves the `AbstractNLSModel` problem `nls` using `IpOpt` by converting it to a feasibility form.
+
+# Arguments
+- `nls::AbstractNLSModel`: The nonlinear least squares problem to solve
+
+For advanced usage, first define a `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
+    solver = IpoptSolver(nls)
+    solve!(solver, nls; kwargs...)
+
+# Examples
+```julia
+using NLPModelsIpopt, ADNLPModels
+nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
+stats = ipopt(nls, print_level = 0)
+```
+"""
+function ipopt(nls::AbstractNLSModel; kwargs...)
+  feasibility_form = FeasibilityFormNLS(nls)
+  # Call the general AbstractNLPModel method
+  solver = IpoptSolver(feasibility_form)
+  stats = GenericExecutionStats(feasibility_form)
+  return solve!(solver, feasibility_form, stats; kwargs...)
+end
+
 function SolverCore.solve!(
   solver::IpoptSolver,
   nlp::AbstractNLPModel,
@@ -302,6 +329,22 @@ function SolverCore.solve!(
   end
 
   stats
+end
+
+"""
+    FeasibilityFormNLS(nls::AbstractNLSModel)
+
+Convert an `AbstractNLSModel` to a form suitable for feasibility-based optimization.
+Since `AbstractNLSModel` is a subtype of `AbstractNLPModel`, this function simply returns the input model.
+
+# Arguments
+- `nls::AbstractNLSModel`: The nonlinear least squares model to convert
+
+# Returns
+- The same `AbstractNLSModel` instance, as it's already suitable for optimization
+"""
+function FeasibilityFormNLS(nls::AbstractNLSModel)
+  return nls
 end
 
 end # module

@@ -106,4 +106,13 @@ end
   @test stats.iter == 5
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
+
+  # Test ipopt with AbstractNLSModel
+  nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
+  stats = ipopt(nls, print_level = 0)
+  @test isapprox(stats.solution, [1.0, 2.0], rtol = 1e-6)
+  @test stats.status == :first_order
+
+  # Test that FeasibilityFormNLS is callable and returns the same object
+  @test FeasibilityFormNLS(nls) === nls
 end
