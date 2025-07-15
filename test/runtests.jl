@@ -107,3 +107,22 @@ end
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
 end
+
+@testset "AbstractNLSModel and Solver Reset Tests" begin
+  # Test ipopt with AbstractNLSModel
+  nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
+  stats = ipopt(nls, print_level = 0)
+  @test isapprox(stats.solution, [1.0, 2.0], rtol = 1e-6)
+  @test stats.status == :first_order
+
+  # Test SolverCore.reset! method
+  nlp = ADNLPModel(x -> (x[1] - 1)^2 + (x[2] - 1)^2, [0.0, 0.0])
+  solver = IpoptSolver(nlp)
+  
+  # Test that reset! can be called without error
+  reset!(solver)
+  
+  # Test that we can solve after reset
+  result = solve!(solver, nlp, print_level=0)
+  @test result.status == :first_order
+end

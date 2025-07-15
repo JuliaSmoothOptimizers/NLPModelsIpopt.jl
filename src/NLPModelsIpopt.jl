@@ -108,6 +108,27 @@ function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
 end
 
 """
+    solver = reset!(solver::IpoptSolver)
+
+Reset the `solver` state without changing the underlying problem.
+This resets the solver's internal state while keeping the same problem structure and callbacks.
+"""
+function SolverCore.reset!(solver::IpoptSolver)
+  problem = solver.problem
+  
+  # Reset solver state to initial values
+  problem.obj_val = Inf
+  problem.status = -1  # Use -1 to indicate not solved yet
+  problem.intermediate = nothing
+  
+  # Note: We keep the same problem structure, callbacks, and initial guess
+  # The user can call reset!(solver, nlp) if they want to change the problem
+  
+  # TODO: reset problem.ipopt_problem
+  return solver
+end
+
+"""
     set_callbacks(nlp::AbstractNLPModel)
 
 Return the set of functions needed to instantiate an `IpoptProblem`.
