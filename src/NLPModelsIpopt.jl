@@ -1,8 +1,9 @@
 module NLPModelsIpopt
 
-export ipopt, IpoptSolver, reset!, solve!, FeasibilityFormNLS
+export ipopt, IpoptSolver, reset!, solve!
 
 using NLPModels, Ipopt, SolverCore
+using NLPModelsModifiers: FeasibilityFormNLS
 
 const ipopt_statuses = Dict(
   0 => :first_order,
@@ -329,22 +330,6 @@ function SolverCore.solve!(
   end
 
   stats
-end
-
-"""
-    FeasibilityFormNLS(nls::AbstractNLSModel)
-
-Convert an `AbstractNLSModel` to a form suitable for feasibility-based optimization.
-Since `AbstractNLSModel` is a subtype of `AbstractNLPModel`, this function simply returns the input model.
-
-# Arguments
-- `nls::AbstractNLSModel`: The nonlinear least squares model to convert
-
-# Returns
-- The same `AbstractNLSModel` instance, as it's already suitable for optimization
-"""
-function FeasibilityFormNLS(nls::AbstractNLSModel)
-  return nls
 end
 
 end # module

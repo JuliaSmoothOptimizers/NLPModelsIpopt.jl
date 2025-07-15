@@ -1,4 +1,5 @@
 using ADNLPModels, NLPModelsIpopt, NLPModels, Ipopt, SolverCore, Test
+using NLPModelsModifiers: FeasibilityFormNLS
 
 @testset "Restart NLPModelsIpopt" begin
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
@@ -110,9 +111,10 @@ end
   # Test ipopt with AbstractNLSModel
   nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
   stats = ipopt(nls, print_level = 0)
-  @test isapprox(stats.solution, [1.0, 2.0], rtol = 1e-6)
+  # The solution should be the original variables (first 2 elements)
+  @test isapprox(stats.solution[1:2], [1.0, 2.0], rtol = 1e-6)
   @test stats.status == :first_order
 
-  # Test that FeasibilityFormNLS is callable and returns the same object
-  @test FeasibilityFormNLS(nls) === nls
+  # Test that FeasibilityFormNLS is callable and works correctly
+  @test typeof(FeasibilityFormNLS(nls)) <: AbstractNLSModel
 end
