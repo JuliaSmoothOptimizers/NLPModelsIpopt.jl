@@ -116,13 +116,22 @@ end
   @test stats.status == :first_order
 
   # Test SolverCore.reset! method
-  nlp = ADNLPModel(x -> (x[1] - 1)^2 + (x[2] - 1)^2, [0.0, 0.0])
+  f(x) = (x[1] - 1)^2 + 4 * (x[2] - x[1]^2)^2
+  nlp = ADNLPModel(f, [-1.2; 1.0])
+  stats = GenericExecutionStats(nlp)
   solver = IpoptSolver(nlp)
   
-  # Test that reset! can be called without error
+  # Solve the problem first
+  stats = solve!(solver, nlp, stats, print_level=0)
+  @test stats.status == :first_order
+  @test isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
+  
+  # Change initial guess and reset solver
+  nlp.meta.x0 .= 2.0
   reset!(solver)
   
-  # Test that we can solve after reset
-  result = solve!(solver, nlp, print_level=0)
-  @test result.status == :first_order
+  # Solve again with new initial guess
+  stats = solve!(solver, nlp, stats, print_level=0)
+  @test stats.status == :first_order
+  @test isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
 end
