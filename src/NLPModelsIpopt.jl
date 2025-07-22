@@ -185,7 +185,7 @@ end
 """
     ipopt(nls::AbstractNLSModel; kwargs...)
 
-Solves the `AbstractNLSModel` problem `nls` using `IpOpt` by converting it to a feasibility form.
+Solves the `AbstractNLSModel` problem `nls` using `IPOPT` by moving the nonlinear residual to the constraints using slack variables.
 
 # Arguments
 - `nls::AbstractNLSModel`: The nonlinear least-squares problem to solve.
@@ -201,11 +201,21 @@ nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
 stats = ipopt(nls, print_level = 0)
 ```
 """
+function ipopt(ff_nls::FeasibilityFormNLS; kwargs...)
+  solver = IpoptSolver(ff_nls)
+  stats = GenericExecutionStats(ff_nls)
+  stats = solve!(solver, ff_nls, stats; kwargs...)
+
+  return stats
+
+
 function ipopt(nls::AbstractNLSModel; kwargs...)
-  feasibility_form = FeasibilityFormNLS(nls)
-  solver = IpoptSolver(feasibility_form)
-  stats = GenericExecutionStats(feasibility_form)
-  return solve!(solver, feasibility_form, stats; kwargs...)
+  ff_nls = isa(nls, FeasibilityFormNLS) ? nls : FeasibilityFormNLS(nls)
+  stats = ipopt(ff_nls; kwargs...)
+  # Only keep the original variables in the solution
+  stats.solution = stats.solution[1:nls.meta.nvar]
+  return stats
+end
 end
 
 function SolverCore.solve!(
