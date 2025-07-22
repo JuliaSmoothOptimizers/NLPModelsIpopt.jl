@@ -203,7 +203,6 @@ stats = ipopt(nls, print_level = 0)
 """
 function ipopt(nls::AbstractNLSModel; kwargs...)
   feasibility_form = FeasibilityFormNLS(nls)
-  # Call the general AbstractNLPModel method
   solver = IpoptSolver(feasibility_form)
   stats = GenericExecutionStats(feasibility_form)
   return solve!(solver, feasibility_form, stats; kwargs...)
