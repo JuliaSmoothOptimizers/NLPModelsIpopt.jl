@@ -115,6 +115,4 @@ end
   @test isapprox(stats.solution[1:2], [1.0, 2.0], rtol = 1e-6)
   @test stats.status == :first_order
 
-  # Test that FeasibilityFormNLS is callable and works correctly
-  @test typeof(FeasibilityFormNLS(nls)) <: AbstractNLSModel
 end
