@@ -188,7 +188,7 @@ end
 Solves the `AbstractNLSModel` problem `nls` using `IpOpt` by converting it to a feasibility form.
 
 # Arguments
-- `nls::AbstractNLSModel`: The nonlinear least squares problem to solve
+- `nls::AbstractNLSModel`: The nonlinear least-squares problem to solve.
 
 For advanced usage, first define a `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
     solver = IpoptSolver(nls)
