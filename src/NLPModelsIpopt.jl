@@ -210,7 +210,7 @@ function ipopt(ff_nls::FeasibilityFormNLS; kwargs...)
 end
 
 function ipopt(nls::AbstractNLSModel; kwargs...)
-  ff_nls = isa(nls, FeasibilityFormNLS) ? nls : FeasibilityFormNLS(nls)
+  ff_nls = FeasibilityFormNLS(nls)
   stats = ipopt(ff_nls; kwargs...)
   # Only keep the original variables in the solution
   stats.solution = stats.solution[1:nls.meta.nvar]
