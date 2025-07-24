@@ -212,8 +212,20 @@ end
 function ipopt(nls::AbstractNLSModel; kwargs...)
   ff_nls = FeasibilityFormNLS(nls)
   stats = ipopt(ff_nls; kwargs...)
-  # Only keep the original variables in the solution
+
   stats.solution = stats.solution[1:nls.meta.nvar]
+
+  if hasproperty(stats, :multipliers_L)
+    stats.multipliers_L = stats.multipliers_L[1:nls.meta.nvar]
+  end
+  if hasproperty(stats, :multipliers_U)
+    stats.multipliers_U = stats.multipliers_U[1:nls.meta.nvar]
+  end
+
+  if hasproperty(stats, :multipliers)
+    stats.multipliers = stats.multipliers[end-nls.meta.ncon+1:end]
+  end
+
   return stats
 end
 
