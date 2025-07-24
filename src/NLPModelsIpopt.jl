@@ -188,7 +188,7 @@ end
 Solve the least-squares problem `nls` using `IPOPT` by moving the nonlinear residual to the constraints.
 
 # Arguments
-- `nls::AbstractNLSModel`: The nonlinear least-squares problem to solve.
+- `nls::AbstractNLSModel`: The least-squares problem to solve.
 
 For advanced usage, first define a `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
     solver = IpoptSolver(nls)
