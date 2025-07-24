@@ -185,7 +185,7 @@ end
 """
     ipopt(nls::AbstractNLSModel; kwargs...)
 
-Solves the `AbstractNLSModel` problem `nls` using `IPOPT` by moving the nonlinear residual to the constraints using slack variables.
+Solve the least-squares problem `nls` using `IPOPT` by moving the nonlinear residual to the constraints.
 
 # Arguments
 - `nls::AbstractNLSModel`: The nonlinear least-squares problem to solve.
