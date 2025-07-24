@@ -190,7 +190,7 @@ Solve the least-squares problem `nls` using `IPOPT` by moving the nonlinear resi
 # Arguments
 - `nls::AbstractNLSModel`: The least-squares problem to solve.
 
-For advanced usage, first define a `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
+For advanced usage, first define an `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
     solver = IpoptSolver(nls)
     solve!(solver, nls; kwargs...)
 
