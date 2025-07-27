@@ -3,6 +3,7 @@ module NLPModelsIpopt
 export ipopt, IpoptSolver, reset!, solve!
 
 using NLPModels, Ipopt, SolverCore
+using NLPModelsModifiers: FeasibilityFormNLS
 
 const ipopt_statuses = Dict(
   0 => :first_order,
@@ -179,6 +180,44 @@ function ipopt(nlp::AbstractNLPModel; kwargs...)
   solver = IpoptSolver(nlp)
   stats = GenericExecutionStats(nlp)
   return solve!(solver, nlp, stats; kwargs...)
+end
+
+"""
+    ipopt(nls::AbstractNLSModel; kwargs...)
+
+Solve the least-squares problem `nls` using `IPOPT` by moving the nonlinear residual to the constraints.
+
+# Arguments
+- `nls::AbstractNLSModel`: The least-squares problem to solve.
+
+For advanced usage, first define an `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
+    solver = IpoptSolver(nls)
+    solve!(solver, nls; kwargs...)
+
+# Examples
+```julia
+using NLPModelsIpopt, ADNLPModels
+nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
+stats = ipopt(nls, print_level = 0)
+```
+"""
+function ipopt(ff_nls::FeasibilityFormNLS; kwargs...)
+  solver = IpoptSolver(ff_nls)
+  stats = GenericExecutionStats(ff_nls)
+  stats = solve!(solver, ff_nls, stats; kwargs...)
+
+  return stats
+end
+
+function ipopt(nls::AbstractNLSModel; kwargs...)
+  ff_nls = FeasibilityFormNLS(nls)
+  stats = ipopt(ff_nls; kwargs...)
+
+  stats.solution = length(stats.solution) >= nls.meta.nvar ? stats.solution[1:nls.meta.nvar] : stats.solution
+  stats.multipliers_L = length(stats.multipliers_L) >= nls.meta.nvar ? stats.multipliers_L[1:nls.meta.nvar] : stats.multipliers_L
+  stats.multipliers_U = length(stats.multipliers_U) >= nls.meta.nvar ? stats.multipliers_U[1:nls.meta.nvar] : stats.multipliers_U
+  stats.multipliers = length(stats.multipliers) >= nls.meta.ncon ? stats.multipliers[end-nls.meta.ncon+1:end] : stats.multipliers
+  return stats
 end
 
 function SolverCore.solve!(
