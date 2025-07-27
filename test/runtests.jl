@@ -39,7 +39,7 @@ end
   @test stats.elapsed_time > 0
   @test stats.iter == 22
   @test stats.primal_feas ≈ 0.0
-  @test isapprox(stats.dual_feas, 0.0; atol=1e-9)
+  @test stats.dual_feas ≈ 0.0
 
   # solve again from solution
   x0 = copy(stats.solution)
