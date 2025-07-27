@@ -22,7 +22,7 @@ using NLPModelsModifiers: FeasibilityFormNLS
   @test stats.elapsed_time > 0
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
-
+end
 
 @testset "Unit tests NLPModelsIpopt" begin
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
