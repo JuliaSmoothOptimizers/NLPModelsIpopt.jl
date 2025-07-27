@@ -35,6 +35,8 @@ end
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
 
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+  stats = ipopt(nlp, tol = 1e-12, print_level = 0)
+  @test isapprox(stats.solution, [1.0; 1.0], rtol = 1e-6)
   @test stats.status == :first_order
   @test stats.elapsed_time > 0
   @test stats.iter == 22
