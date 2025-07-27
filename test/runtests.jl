@@ -115,5 +115,5 @@ end
   @test isapprox(stats.solution, [1.0, 2.0], rtol = 1e-6)
   @test stats.status == :first_order
   @test stats.iter >= 0
-  @test isapprox(stats.dual_feas, 0.0; atol=1e-8)
+  @test isapprox(stats.dual_feas, 0.0; atol = 1e-8)
 end

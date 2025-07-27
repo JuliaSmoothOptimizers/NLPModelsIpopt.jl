@@ -213,10 +213,17 @@ function ipopt(nls::AbstractNLSModel; kwargs...)
   ff_nls = FeasibilityFormNLS(nls)
   stats = ipopt(ff_nls; kwargs...)
 
-  stats.solution = length(stats.solution) >= nls.meta.nvar ? stats.solution[1:nls.meta.nvar] : stats.solution
-  stats.multipliers_L = length(stats.multipliers_L) >= nls.meta.nvar ? stats.multipliers_L[1:nls.meta.nvar] : stats.multipliers_L
-  stats.multipliers_U = length(stats.multipliers_U) >= nls.meta.nvar ? stats.multipliers_U[1:nls.meta.nvar] : stats.multipliers_U
-  stats.multipliers = length(stats.multipliers) >= nls.meta.ncon ? stats.multipliers[end-nls.meta.ncon+1:end] : stats.multipliers
+  stats.solution =
+    length(stats.solution) >= nls.meta.nvar ? stats.solution[1:nls.meta.nvar] : stats.solution
+  stats.multipliers_L =
+    length(stats.multipliers_L) >= nls.meta.nvar ? stats.multipliers_L[1:nls.meta.nvar] :
+    stats.multipliers_L
+  stats.multipliers_U =
+    length(stats.multipliers_U) >= nls.meta.nvar ? stats.multipliers_U[1:nls.meta.nvar] :
+    stats.multipliers_U
+  stats.multipliers =
+    length(stats.multipliers) >= nls.meta.ncon ? stats.multipliers[(end - nls.meta.ncon + 1):end] :
+    stats.multipliers
   return stats
 end
 
