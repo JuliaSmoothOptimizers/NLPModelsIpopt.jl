@@ -1,4 +1,5 @@
 using ADNLPModels, NLPModelsIpopt, NLPModels, Ipopt, SolverCore, Test
+using NLPModelsModifiers: FeasibilityFormNLS
 
 @testset "Restart NLPModelsIpopt" begin
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
@@ -108,14 +109,17 @@ end
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
 end
 
-@testset "AbstractNLSModel and Solver Reset Tests" begin
-  # Test ipopt with AbstractNLSModel
+@testset "ipopt with AbstractNLSModel" begin
   nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
   stats = ipopt(nls, print_level = 0)
   @test isapprox(stats.solution, [1.0, 2.0], rtol = 1e-6)
   @test stats.status == :first_order
+  @test stats.iter >= 0
+  @test isapprox(stats.dual_feas, 0.0; atol=1e-8)
+end
 
-  # Test SolverCore.reset! method
+@testset "AbstractNLSModel and Solver Reset Tests" begin
+    # Test SolverCore.reset! method
   f(x) = (x[1] - 1)^2 + 4 * (x[2] - x[1]^2)^2
   nlp = ADNLPModel(f, [-1.2; 1.0])
   stats = GenericExecutionStats(nlp)
