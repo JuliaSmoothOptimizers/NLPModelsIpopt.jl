@@ -8,7 +8,7 @@ using NLPModelsModifiers: FeasibilityFormNLS
   stats = solve!(solver, nlp, stats, print_level = 0)
   @test isapprox(stats.solution, [1.0; 1.0], rtol = 1e-6)
   @test stats.status == :first_order
-  @test isapprox(stats.iter, 21; atol=1)
+  @test stats.iter == 21
   @test stats.elapsed_time > 0
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
