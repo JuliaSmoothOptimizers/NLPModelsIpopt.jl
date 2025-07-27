@@ -37,7 +37,7 @@ end
   nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
   @test stats.status == :first_order
   @test stats.elapsed_time > 0
-  @test isapprox(stats.iter, 22; atol=1)
+  @test stats.iter == 22
   @test stats.primal_feas ≈ 0.0
   @test isapprox(stats.dual_feas, 0.0; atol=1e-9)
 
