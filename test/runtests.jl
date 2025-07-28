@@ -118,7 +118,7 @@ end
   @test isapprox(stats.dual_feas, 0.0; atol=1e-8)
 end
 
-@testset "AbstractNLSModel and Solver Reset Tests" begin
+@testset "Test restart with a different initial guess" begin
   nlp = ADNLPModel(f, [-1.2; 1.0])
   stats = GenericExecutionStats(nlp)
   solver = IpoptSolver(nlp)
