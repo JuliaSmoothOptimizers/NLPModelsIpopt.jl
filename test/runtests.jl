@@ -119,6 +119,7 @@ end
 end
 
 @testset "Test restart with a different initial guess" begin
+  f(x) = (x[1] - 1)^2 + 4 * (x[2] - x[1]^2)^2
   nlp = ADNLPModel(f, [-1.2; 1.0])
   stats = GenericExecutionStats(nlp)
   solver = IpoptSolver(nlp)
