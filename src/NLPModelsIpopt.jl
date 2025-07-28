@@ -116,9 +116,6 @@ function SolverCore.reset!(solver::IpoptSolver)
   problem.status = -1  # Use -1 to indicate not solved yet
   problem.intermediate = nothing
   
-  # Note: We keep the same problem structure, callbacks, and initial guess
-  # The user can call reset!(solver, nlp) if they want to change the problem
-  
   # TODO: reset problem.ipopt_problem
   return solver
 end
