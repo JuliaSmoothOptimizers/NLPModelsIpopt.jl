@@ -112,6 +112,42 @@ end
     set_callbacks(nlp::AbstractNLPModel)
 
 Return the set of functions needed to instantiate an `IpoptProblem`.
+
+## Callback Usage Example
+
+You can use a callback to monitor the optimization process. The callback must have the signature:
+
+    function my_callback(alg_mod, iter_count, problem_ptr, args...)
+
+The `problem_ptr` argument is required to access the current iterate and constraint violations using `Ipopt.GetIpoptCurrentIterate` and `Ipopt.GetIpoptCurrentViolations`.
+
+`Ipopt.GetIpoptCurrentIterate(problem_ptr)` returns:
+  - `x`: current primal variables
+  - `z_L`: current multipliers for lower bounds
+  - `z_U`: current multipliers for upper bounds
+  - `g`: current constraint values
+  - `lambda`: current multipliers for constraints
+
+`Ipopt.GetIpoptCurrentViolations(problem_ptr)` returns:
+  - `constr_viol`: constraint violation
+  - `dual_inf`: dual infeasibility
+  - `compl`: complementarity
+
+Example:
+
+```julia
+function my_callback(alg_mod, iter_count, problem_ptr, args...)
+    # Get current iterate (primal and dual variables)
+    x, z_L, z_U, g, lambda = Ipopt.GetIpoptCurrentIterate(problem_ptr)
+    # Get current constraint violations
+    constr_viol, dual_inf, compl = Ipopt.GetIpoptCurrentViolations(problem_ptr)
+    @info "Iter $iter_count: primal = $x, dual = $lambda, constr_viol = $constr_viol, dual_inf = $dual_inf, compl = $compl"
+    return true  # return false to stop
+end
+
+# Pass the callback to ipopt using the `callback` keyword:
+stats = ipopt(nlp, callback = my_callback)
+```
 """
 function set_callbacks(nlp::AbstractNLPModel)
   eval_f(x) = obj(nlp, x)
