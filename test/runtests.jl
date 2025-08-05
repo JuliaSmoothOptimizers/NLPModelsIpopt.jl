@@ -125,7 +125,7 @@ end
   solver = IpoptSolver(nlp)
   
   # Solve the problem first
-  stats = solve!(solver, nlp, stats, print_level=0)
+  stats = solve!(solver, nlp, stats, print_level = 0)
   @test stats.status == :first_order
   @test isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
   
@@ -134,7 +134,7 @@ end
   reset!(solver)
   
   # Solve again with new initial guess
-  stats = solve!(solver, nlp, stats, print_level=0)
+  stats = solve!(solver, nlp, stats, print_level = 0)
   @test stats.status == :first_order
   @test isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
 end

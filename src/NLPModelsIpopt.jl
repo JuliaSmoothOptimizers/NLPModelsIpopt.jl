@@ -94,7 +94,7 @@ function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
   @assert nlp.meta.ncon == problem.m
 
   problem.obj_val = Inf
-  problem.status = 0
+  problem.status = -1
   problem.x .= nlp.meta.x0
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
   problem.eval_f = eval_f
@@ -111,7 +111,6 @@ end
 function SolverCore.reset!(solver::IpoptSolver)
   problem = solver.problem
   
-  # Reset solver state to initial values
   problem.obj_val = Inf
   problem.status = -1  # Use -1 to indicate not solved yet
   problem.intermediate = nothing
