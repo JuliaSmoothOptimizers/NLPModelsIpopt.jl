@@ -123,16 +123,16 @@ end
   nlp = ADNLPModel(f, [-1.2; 1.0])
   stats = GenericExecutionStats(nlp)
   solver = IpoptSolver(nlp)
-  
+
   # Solve the problem first
   stats = solve!(solver, nlp, stats, print_level = 0)
   @test stats.status == :first_order
   @test isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
-  
+
   # Change initial guess and reset solver
   nlp.meta.x0 .= 2.0
   reset!(solver)
-  
+
   # Solve again with new initial guess
   stats = solve!(solver, nlp, stats, print_level = 0)
   @test stats.status == :first_order
