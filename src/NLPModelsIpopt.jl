@@ -110,11 +110,11 @@ end
 
 function SolverCore.reset!(solver::IpoptSolver)
   problem = solver.problem
-  
+
   problem.obj_val = Inf
   problem.status = -1  # Use -1 to indicate not solved yet
   problem.intermediate = nothing
-  
+
   return solver
 end
 
