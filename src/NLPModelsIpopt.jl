@@ -149,7 +149,7 @@ function my_callback(alg_mod, iter_count, problem_ptr, args...)
     x, z_L, z_U, g, lambda = Ipopt.GetIpoptCurrentIterate(problem_ptr)
     # Get current constraint violations
     constr_viol, dual_inf, compl = Ipopt.GetIpoptCurrentViolations(problem_ptr)
-    @info "Iter $iter_count: primal = $x, dual = $lambda, constr_viol = $constr_viol, dual_inf = $dual_inf, compl = $compl"
+    @info "Iter \$iter_count: primal = \$x, dual = \$lambda, constr_viol = \$constr_viol, dual_inf = \$dual_inf, compl = \$compl"
     return true  # return false to stop
 end
 
