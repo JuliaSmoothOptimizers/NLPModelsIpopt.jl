@@ -62,6 +62,97 @@ Here is an example using the constrained problem solve:
 stats.solver_specific[:internal_msg]
 ```
 
+## Monitoring optimization with callbacks
+
+You can monitor the optimization process using a callback function. The callback allows you to access the current iterate and constraint violations at each iteration, which is useful for custom stopping criteria, logging, or real-time analysis.
+
+### Callback signature
+
+The callback function must have the following signature:
+
+```julia
+function my_callback(alg_mod, iter_count, problem_ptr, args...)
+    # Your custom code here
+    return true  # return false to stop optimization
+end
+```
+
+### Accessing current iterate information
+
+The `problem_ptr` argument provides access to the current state of the optimization:
+
+- `Ipopt.GetIpoptCurrentIterate(problem_ptr)` returns:
+  - `x`: current primal variables
+  - `z_L`: current multipliers for lower bounds  
+  - `z_U`: current multipliers for upper bounds
+  - `g`: current constraint values
+  - `lambda`: current multipliers for constraints
+
+- `Ipopt.GetIpoptCurrentViolations(problem_ptr)` returns:
+  - `constr_viol`: constraint violation
+  - `dual_inf`: dual infeasibility  
+  - `compl`: complementarity
+
+### Example usage
+
+Here's a complete example showing how to use callbacks to monitor the optimization:
+
+```@example ex4
+using ADNLPModels, NLPModelsIpopt
+
+# Define a callback function to monitor iterations
+function my_callback(alg_mod, iter_count, problem_ptr, args...)
+    # Get current iterate (primal and dual variables)
+    x, z_L, z_U, g, lambda = Ipopt.GetIpoptCurrentIterate(problem_ptr)
+    # Get current constraint violations
+    constr_viol, dual_inf, compl = Ipopt.GetIpoptCurrentViolations(problem_ptr)
+    
+    # Log iteration information
+    println("Iteration $iter_count:")
+    println("  x = ", x)
+    println("  Constraint violation = ", constr_viol)
+    println("  Dual infeasibility = ", dual_inf)
+    println("  Complementarity = ", compl)
+    
+    # Return true to continue, false to stop
+    return iter_count < 5  # Stop after 5 iterations for this example
+end
+
+# Create and solve a problem with callback
+nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+stats = ipopt(nlp, callback = my_callback, print_level = 0)
+```
+
+You can also use callbacks with the advanced solver interface:
+
+```@example ex4
+# Advanced usage with IpoptSolver
+solver = IpoptSolver(nlp)
+stats = solve!(solver, nlp, callback = my_callback, print_level = 0)
+```
+
+### Custom stopping criteria
+
+Callbacks are particularly useful for implementing custom stopping criteria:
+
+```@example ex4
+function custom_stopping_callback(alg_mod, iter_count, problem_ptr, args...)
+    x, z_L, z_U, g, lambda = Ipopt.GetIpoptCurrentIterate(problem_ptr)
+    constr_viol, dual_inf, compl = Ipopt.GetIpoptCurrentViolations(problem_ptr)
+    
+    # Custom stopping criterion: stop if x[1] gets close to 1
+    if abs(x[1] - 1.0) < 0.1
+        println("Custom stopping criterion met at iteration $iter_count")
+        return false  # Stop optimization
+    end
+    
+    return true  # Continue optimization
+end
+
+nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+stats = ipopt(nlp, callback = custom_stopping_callback, print_level = 0)
+```
+
 ## Manual input
 
 In this section, we work through an example where we specify the problem and its derivatives manually. For this, we need to implement the following `NLPModel` API methods:
