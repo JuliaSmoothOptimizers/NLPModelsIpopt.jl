@@ -77,21 +77,32 @@ function my_callback(alg_mod, iter_count, problem_ptr, args...)
 end
 ```
 
-### Accessing current iterate information
+### Callback function signature
 
-The `problem_ptr` argument provides access to the current state of the optimization:
+Callback functions must have the following signature:
 
-- `Ipopt.GetIpoptCurrentIterate(problem_ptr)` returns:
-  - `x`: current primal variables
-  - `z_L`: current multipliers for lower bounds  
-  - `z_U`: current multipliers for upper bounds
-  - `g`: current constraint values
-  - `lambda`: current multipliers for constraints
+```julia
+function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+    # Your callback code here
+    return true  # return false to stop optimization
+end
+```
 
-- `Ipopt.GetIpoptCurrentViolations(problem_ptr)` returns:
-  - `constr_viol`: constraint violation
-  - `dual_inf`: dual infeasibility  
-  - `compl`: complementarity
+### Callback parameters
+
+The callback function receives the following parameters from Ipopt:
+
+- `alg_mod`: algorithm mode (0 = regular, 1 = restoration phase)
+- `iter_count`: current iteration number
+- `obj_value`: current objective function value
+- `inf_pr`: primal infeasibility (constraint violation)
+- `inf_du`: dual infeasibility 
+- `mu`: complementarity measure
+- `d_norm`: norm of the primal step
+- `regularization_size`: size of regularization
+- `alpha_du`: step size for dual variables
+- `alpha_pr`: step size for primal variables  
+- `ls_trials`: number of line search trials
 
 ### Example usage
 
@@ -100,19 +111,14 @@ Here's a complete example showing how to use callbacks to monitor the optimizati
 ```@example ex4
 using ADNLPModels, NLPModelsIpopt
 
-# Define a callback function to monitor iterations
-function my_callback(alg_mod, iter_count, problem_ptr, args...)
-    # Get current iterate (primal and dual variables)
-    x, z_L, z_U, g, lambda = Ipopt.GetIpoptCurrentIterate(problem_ptr)
-    # Get current constraint violations
-    constr_viol, dual_inf, compl = Ipopt.GetIpoptCurrentViolations(problem_ptr)
-    
-    # Log iteration information
+# Define a simple callback function to monitor iterations
+function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+    # Log iteration information (these are the standard parameters passed by Ipopt)
     println("Iteration $iter_count:")
-    println("  x = ", x)
-    println("  Constraint violation = ", constr_viol)
-    println("  Dual infeasibility = ", dual_inf)
-    println("  Complementarity = ", compl)
+    println("  Objective value = ", obj_value)
+    println("  Primal infeasibility = ", inf_pr)
+    println("  Dual infeasibility = ", inf_du)
+    println("  Complementarity = ", mu)
     
     # Return true to continue, false to stop
     return iter_count < 5  # Stop after 5 iterations for this example
@@ -136,12 +142,9 @@ stats = solve!(solver, nlp, callback = my_callback, print_level = 0)
 Callbacks are particularly useful for implementing custom stopping criteria:
 
 ```@example ex4
-function custom_stopping_callback(alg_mod, iter_count, problem_ptr, args...)
-    x, z_L, z_U, g, lambda = Ipopt.GetIpoptCurrentIterate(problem_ptr)
-    constr_viol, dual_inf, compl = Ipopt.GetIpoptCurrentViolations(problem_ptr)
-    
-    # Custom stopping criterion: stop if x[1] gets close to 1
-    if abs(x[1] - 1.0) < 0.1
+function custom_stopping_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+    # Custom stopping criterion: stop if objective gets close to optimum
+    if obj_value < 0.01
         println("Custom stopping criterion met at iteration $iter_count")
         return false  # Stop optimization
     end
