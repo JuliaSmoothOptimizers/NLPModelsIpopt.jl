@@ -122,16 +122,6 @@ end
     set_callbacks(nlp::AbstractNLPModel)
 
 Return the set of functions needed to instantiate an `IpoptProblem`.
-
-This function creates the callback functions that Ipopt needs to evaluate:
-- the objective function
-- the constraint function (if any)
-- the objective gradient
-- the constraint Jacobian (if any) 
-- the Hessian of the Lagrangian
-
-For information on using callbacks to monitor the optimization process, 
-see the tutorial documentation.
 """
 function set_callbacks(nlp::AbstractNLPModel)
   eval_f(x) = obj(nlp, x)
