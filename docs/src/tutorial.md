@@ -77,17 +77,6 @@ function my_callback(alg_mod, iter_count, problem_ptr, args...)
 end
 ```
 
-### Callback function signature
-
-Callback functions must have the following signature:
-
-```julia
-function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
-    # Your callback code here
-    return true  # return false to stop optimization
-end
-```
-
 ### Callback parameters
 
 The callback function receives the following parameters from Ipopt:
