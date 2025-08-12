@@ -1,5 +1,3 @@
-module NLPModelsIpopt
-
 export ipopt, IpoptSolver, reset!, solve!
 
 using NLPModels, Ipopt, SolverCore
