@@ -100,7 +100,6 @@ Here's a complete example showing how to use callbacks to monitor the optimizati
 ```@example ex4
 using ADNLPModels, NLPModelsIpopt
 
-# Define a simple callback function to monitor iterations
 function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
     # Log iteration information (these are the standard parameters passed by Ipopt)
     println("Iteration $iter_count:")
