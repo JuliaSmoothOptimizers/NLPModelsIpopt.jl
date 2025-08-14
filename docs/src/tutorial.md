@@ -112,7 +112,6 @@ function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm,
     return iter_count < 5  # Stop after 5 iterations for this example
 end
 
-# Create and solve a problem with callback
 nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
 stats = ipopt(nlp, callback = my_callback, print_level = 0)
 ```
