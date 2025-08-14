@@ -66,17 +66,6 @@ stats.solver_specific[:internal_msg]
 
 You can monitor the optimization process using a callback function. The callback allows you to access the current iterate and constraint violations at each iteration, which is useful for custom stopping criteria, logging, or real-time analysis.
 
-### Callback signature
-
-The callback function must have the following signature:
-
-```julia
-function my_callback(alg_mod, iter_count, problem_ptr, args...)
-    # Your custom code here
-    return true  # return false to stop optimization
-end
-```
-
 ### Callback parameters
 
 The callback function receives the following parameters from Ipopt:
