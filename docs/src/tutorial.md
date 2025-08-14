@@ -116,7 +116,6 @@ stats = ipopt(nlp, callback = my_callback, print_level = 0)
 ```
 
 You can also use callbacks with the advanced solver interface:
-
 ```@example ex4
 # Advanced usage with IpoptSolver
 solver = IpoptSolver(nlp)
