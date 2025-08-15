@@ -62,6 +62,74 @@ Here is an example using the constrained problem solve:
 stats.solver_specific[:internal_msg]
 ```
 
+## Monitoring optimization with callbacks
+
+You can monitor the optimization process using a callback function. The callback allows you to access the current iterate and constraint violations at each iteration, which is useful for custom stopping criteria, logging, or real-time analysis.
+
+### Callback parameters
+
+The callback function receives the following parameters from Ipopt:
+
+- `alg_mod`: algorithm mode (0 = regular, 1 = restoration phase)
+- `iter_count`: current iteration number
+- `obj_value`: current objective function value
+- `inf_pr`: primal infeasibility (constraint violation)
+- `inf_du`: dual infeasibility 
+- `mu`: complementarity measure
+- `d_norm`: norm of the primal step
+- `regularization_size`: size of regularization
+- `alpha_du`: step size for dual variables
+- `alpha_pr`: step size for primal variables  
+- `ls_trials`: number of line search trials
+
+### Example usage
+
+Here's a complete example showing how to use callbacks to monitor the optimization:
+
+```@example ex4
+using ADNLPModels, NLPModelsIpopt
+
+function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+    # Log iteration information (these are the standard parameters passed by Ipopt)
+    println("Iteration $iter_count:")
+    println("  Objective value = ", obj_value)
+    println("  Primal infeasibility = ", inf_pr)
+    println("  Dual infeasibility = ", inf_du)
+    println("  Complementarity = ", mu)
+    
+    # Return true to continue, false to stop
+    return iter_count < 5  # Stop after 5 iterations for this example
+end
+nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+stats = ipopt(nlp, callback = my_callback, print_level = 0)
+```
+
+You can also use callbacks with the advanced solver interface:
+```@example ex4
+# Advanced usage with IpoptSolver
+solver = IpoptSolver(nlp)
+stats = solve!(solver, nlp, callback = my_callback, print_level = 0)
+```
+
+### Custom stopping criteria
+
+Callbacks are particularly useful for implementing custom stopping criteria:
+
+```@example ex4
+function custom_stopping_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+    # Custom stopping criterion: stop if objective gets close to optimum
+    if obj_value < 0.01
+        println("Custom stopping criterion met at iteration $iter_count")
+        return false  # Stop optimization
+    end
+    
+    return true  # Continue optimization
+end
+
+nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+stats = ipopt(nlp, callback = custom_stopping_callback, print_level = 0)
+```
+
 ## Manual input
 
 In this section, we work through an example where we specify the problem and its derivatives manually. For this, we need to implement the following `NLPModel` API methods:
