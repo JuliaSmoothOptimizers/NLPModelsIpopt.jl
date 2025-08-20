@@ -1,6 +1,6 @@
 module NLPModelsIpopt
 
-export ipopt, IpoptSolver, reset!, solve!
+export ipopt, IpoptSolver, reset!, solve!, TEMP_FILES, cleanup_temp_files
 
 using NLPModels, Ipopt, SolverCore
 using NLPModelsModifiers: FeasibilityFormNLS
@@ -58,6 +58,19 @@ Returns an `IpoptSolver` structure to solve the problem `nlp` with `ipopt`.
 """
 mutable struct IpoptSolver <: AbstractOptimizationSolver
   problem::IpoptProblem
+end
+
+function cleanup_temp_files()
+  for file in TEMP_FILES
+    if isfile(file)
+      try
+        rm(file; force=true)
+      catch e
+        @warn "Could not remove temp file $file: $e"
+      end
+    end
+  end
+  empty!(TEMP_FILES)
 end
 
 function IpoptSolver(nlp::AbstractNLPModel)
@@ -237,6 +250,8 @@ function ipopt(nls::AbstractNLSModel; kwargs...)
   return stats
 end
 
+const TEMP_FILES = String[]
+
 function SolverCore.solve!(
   solver::IpoptSolver,
   nlp::AbstractNLPModel,
@@ -305,6 +320,7 @@ function SolverCore.solve!(
   else
     # log to file anyways to parse the output
     ipopt_log_file = tempname()
+    push!(TEMP_FILES, ipopt_log_file)
     # make sure the user didn't specify a file log level without a file name
     0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
   end
@@ -355,6 +371,15 @@ function SolverCore.solve!(
     stats.dual_residual_reliable = false
     stats.iter_reliable = false
     stats.time_reliable = false
+  finally
+    # Try to delete the temp file after reading
+    if isfile(ipopt_log_file)
+      try
+        rm(ipopt_log_file; force=true)
+      catch e
+        @warn "Could not remove temp file $ipopt_log_file: $e"
+      end
+    end
   end
 
   stats
