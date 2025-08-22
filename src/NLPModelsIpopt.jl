@@ -345,40 +345,60 @@ function SolverCore.solve!(
   set_solver_specific!(stats, :internal_msg, ipopt_internal_statuses[status])
   set_solver_specific!(stats, :real_time, real_time)
 
-  try
-    ipopt_output = readlines(ipopt_log_file)
-
-    Δt = 0.0
-    dual_feas = primal_feas = Inf
-    iter = -1
-    for line in ipopt_output
-      if occursin("Total seconds", line)
-        Δt += Meta.parse(split(line, "=")[2])
-      elseif occursin("Dual infeasibility", line)
-        dual_feas = Meta.parse(split(line)[4])
-      elseif occursin("Constraint violation", line)
-        primal_feas = Meta.parse(split(line)[4])
-      elseif occursin("Number of Iterations....", line)
-        iter = Meta.parse(split(line)[4])
+  # Retry logic for reading and deleting temp file (Windows EBUSY workaround)
+  max_retries = 10
+  ipopt_output = nothing
+  for attempt in 1:max_retries
+    try
+      ipopt_output = readlines(ipopt_log_file)
+      break
+    catch e
+      if attempt == max_retries
+        @warn("could not parse Ipopt log file after $max_retries attempts. $e")
+        stats.primal_residual_reliable = false
+        stats.dual_residual_reliable = false
+        stats.iter_reliable = false
+        stats.time_reliable = false
+        ipopt_output = String[]
+      else
+        sleep(0.1)
       end
     end
-    set_residuals!(stats, primal_feas, dual_feas)
-    set_iter!(stats, iter)
-    set_time!(stats, Δt)
-  catch e
-    @warn("could not parse Ipopt log file. $e")
-    stats.primal_residual_reliable = false
-    stats.dual_residual_reliable = false
-    stats.iter_reliable = false
-    stats.time_reliable = false
-  finally
-    # Try to delete the temp file after reading
+  end
+
+  Δt = 0.0
+  dual_feas = primal_feas = Inf
+  iter = -1
+  for line in ipopt_output
+    if occursin("Total seconds", line)
+      Δt += Meta.parse(split(line, "=")[2])
+    elseif occursin("Dual infeasibility", line)
+      dual_feas = Meta.parse(split(line)[4])
+    elseif occursin("Constraint violation", line)
+      primal_feas = Meta.parse(split(line)[4])
+    elseif occursin("Number of Iterations....", line)
+      iter = Meta.parse(split(line)[4])
+    end
+  end
+  set_residuals!(stats, primal_feas, dual_feas)
+  set_iter!(stats, iter)
+  set_time!(stats, Δt)
+
+  # Retry logic for deleting temp file
+  for attempt in 1:max_retries
     if isfile(ipopt_log_file)
       try
         rm(ipopt_log_file; force=true)
+        break
       catch e
-        @warn "Could not remove temp file $ipopt_log_file: $e"
+        if attempt == max_retries
+          @warn "Could not remove temp file $ipopt_log_file after $max_retries attempts: $e"
+        else
+          sleep(0.1)
+        end
       end
+    else
+      break
     end
   end
 
