@@ -131,7 +131,7 @@ end
 
   # Change initial guess and reset solver
   nlp.meta.x0 .= 2.0
-  reset!(solver)
+  SolverCore.reset!(solver)
 
   # Solve again with new initial guess
   stats = solve!(solver, nlp, stats, print_level = 0)

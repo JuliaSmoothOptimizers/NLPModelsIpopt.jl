@@ -273,17 +273,8 @@ function SolverCore.solve!(
   end
 
   # pass options to IPOPT
-  # make sure IPOPT logs to file so we can grep time, residuals and number of iterations
-  ipopt_log_to_file = false
-  ipopt_file_log_level = 3
-  local ipopt_log_file
   for (k, v) in kwargs
-    if k == :output_file
-      ipopt_log_file = v
-      ipopt_log_to_file = true
-    elseif k == :file_print_level
-      ipopt_file_log_level = v
-    elseif typeof(v) <: Integer
+    if typeof(v) <: Integer
       AddIpoptIntOption(problem, string(k), v)
     elseif typeof(v) <: Real
       AddIpoptNumOption(problem, string(k), v)
@@ -298,22 +289,15 @@ function SolverCore.solve!(
     AddIpoptNumOption(problem, "obj_scaling_factor", -1.0)
   end
 
-  if ipopt_log_to_file
-    0 < ipopt_file_log_level < 3 && @warn(
-      "`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations"
-    )
-  else
-    # log to file anyways to parse the output
-    ipopt_log_file = tempname()
-    # make sure the user didn't specify a file log level without a file name
-    0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
-  end
-
-  AddIpoptStrOption(problem, "output_file", ipopt_log_file)
-  AddIpoptIntOption(problem, "file_print_level", ipopt_file_log_level)
-
   # Callback
-  SetIntermediateCallback(problem, callback)
+  function solver_callback(
+    alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...; stats = stats
+  )
+    set_residuals!(stats, inf_pr, inf_du)
+    set_iter!(stats, Int(iter_count))
+    return callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+  end
+  SetIntermediateCallback(problem, solver_callback)
 
   real_time = time()
   status = IpoptSolve(problem)
@@ -327,35 +311,7 @@ function SolverCore.solve!(
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
   set_solver_specific!(stats, :internal_msg, ipopt_internal_statuses[status])
-  set_solver_specific!(stats, :real_time, real_time)
-
-  try
-    ipopt_output = readlines(ipopt_log_file)
-
-    Δt = 0.0
-    dual_feas = primal_feas = Inf
-    iter = -1
-    for line in ipopt_output
-      if occursin("Total seconds", line)
-        Δt += Meta.parse(split(line, "=")[2])
-      elseif occursin("Dual infeasibility", line)
-        dual_feas = Meta.parse(split(line)[4])
-      elseif occursin("Constraint violation", line)
-        primal_feas = Meta.parse(split(line)[4])
-      elseif occursin("Number of Iterations....", line)
-        iter = Meta.parse(split(line)[4])
-      end
-    end
-    set_residuals!(stats, primal_feas, dual_feas)
-    set_iter!(stats, iter)
-    set_time!(stats, Δt)
-  catch e
-    @warn("could not parse Ipopt log file. $e")
-    stats.primal_residual_reliable = false
-    stats.dual_residual_reliable = false
-    stats.iter_reliable = false
-    stats.time_reliable = false
-  end
+  set_time!(stats, real_time)
 
   stats
 end
