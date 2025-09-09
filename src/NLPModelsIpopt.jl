@@ -291,11 +291,36 @@ function SolverCore.solve!(
 
   # Callback
   function solver_callback(
-    alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...; stats = stats
+    alg_mod,
+    iter_count,
+    obj_value,
+    inf_pr,
+    inf_du,
+    mu,
+    d_norm,
+    regularization_size,
+    alpha_du,
+    alpha_pr,
+    ls_trials,
+    args...;
+    stats = stats,
   )
     set_residuals!(stats, inf_pr, inf_du)
     set_iter!(stats, Int(iter_count))
-    return callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
+    return callback(
+      alg_mod,
+      iter_count,
+      obj_value,
+      inf_pr,
+      inf_du,
+      mu,
+      d_norm,
+      regularization_size,
+      alpha_du,
+      alpha_pr,
+      ls_trials,
+      args...,
+    )
   end
   SetIntermediateCallback(problem, solver_callback)
 
