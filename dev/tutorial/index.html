@@ -4,9 +4,9 @@ nlp = ADNLPModel(x -&gt; sum(x.^2), ones(3));
 stats = ipopt(nlp, print_level = 0)</code></pre><pre><code class="nohighlight hljs">using NLPModelsIpopt, ADNLPModels
 nlp = ADNLPModel(x -&gt; sum(x.^2), ones(3));
 solver = IpoptSolver(nlp);
-stats = solve!(solver, nlp, print_level = 0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/baa3febcc0fc7b82fbb5a9f19701e79532a81cdc/src/NLPModelsIpopt.jl#L153-L188">source</a></section><section><div><pre><code class="language-julia hljs">ipopt(nls::AbstractNLSModel; kwargs...)</code></pre><p>Solve the least-squares problem <code>nls</code> using <code>IPOPT</code> by moving the nonlinear residual to the constraints.</p><p><strong>Arguments</strong></p><ul><li><code>nls::AbstractNLSModel</code>: The least-squares problem to solve.</li></ul><p>For advanced usage, first define an <code>IpoptSolver</code> to preallocate the memory used in the algorithm, and then call <code>solve!</code>:     solver = IpoptSolver(nls)     solve!(solver, nls; kwargs...)</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">using NLPModelsIpopt, ADNLPModels
+stats = solve!(solver, nlp, print_level = 0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/596f20cec965df8d6418a8a6474349b5e7c4cfc5/src/NLPModelsIpopt.jl#L153-L188">source</a></section><section><div><pre><code class="language-julia hljs">ipopt(nls::AbstractNLSModel; kwargs...)</code></pre><p>Solve the least-squares problem <code>nls</code> using <code>IPOPT</code> by moving the nonlinear residual to the constraints.</p><p><strong>Arguments</strong></p><ul><li><code>nls::AbstractNLSModel</code>: The least-squares problem to solve.</li></ul><p>For advanced usage, first define an <code>IpoptSolver</code> to preallocate the memory used in the algorithm, and then call <code>solve!</code>:     solver = IpoptSolver(nls)     solve!(solver, nls; kwargs...)</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">using NLPModelsIpopt, ADNLPModels
 nls = ADNLSModel(x -&gt; [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
-stats = ipopt(nls, print_level = 0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/baa3febcc0fc7b82fbb5a9f19701e79532a81cdc/src/NLPModelsIpopt.jl#L195-L213">source</a></section></article><p>Let&#39;s create an NLPModel for the Rosenbrock function</p><p class="math-container">\[f(x) = (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2\]</p><p>and solve it with Ipopt:</p><pre><code class="language-julia hljs">using ADNLPModels, NLPModels, NLPModelsIpopt
+stats = ipopt(nls, print_level = 0)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaSmoothOptimizers/NLPModelsIpopt.jl/blob/596f20cec965df8d6418a8a6474349b5e7c4cfc5/src/NLPModelsIpopt.jl#L195-L213">source</a></section></article><p>Let&#39;s create an NLPModel for the Rosenbrock function</p><p class="math-container">\[f(x) = (x_1 - 1)^2 + 100 (x_2 - x_1^2)^2\]</p><p>and solve it with Ipopt:</p><pre><code class="language-julia hljs">using ADNLPModels, NLPModels, NLPModelsIpopt
 
 nlp = ADNLPModel(x -&gt; (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
 stats = ipopt(nlp)
@@ -17,7 +17,7 @@ This program contains Ipopt, a library for large-scale nonlinear optimization.
          For more information visit https://github.com/coin-or/Ipopt
 ******************************************************************************
 
-This is Ipopt version 3.14.17, running with linear solver MUMPS 5.8.0.
+This is Ipopt version 3.14.19, running with linear solver MUMPS 5.8.1.
 
 Number of nonzeros in equality constraint Jacobian...:        0
 Number of nonzeros in inequality constraint Jacobian.:        0
@@ -77,26 +77,25 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total seconds in IPOPT                               = 4.148
+Total seconds in IPOPT                               = 3.780
 
 EXIT: Optimal Solution Found.
 Generic Execution stats
   status: first-order stationary
   objective value: 3.743975643139474e-21
   primal feasibility: 0.0
-  dual feasibility: 3.732500974666708e-10
+  dual feasibility: 1.731215665429828e-10
   solution: [0.9999999999400667  0.9999999998789006]
   iterations: 21
-  elapsed time: 4.148
+  elapsed time: 3.780701160430908
   solver specific:
-    real_time: 4.14860987663269
     internal_msg: :Solve_Succeeded</code></pre><p>For comparison, we present the same problem and output using JuMP:</p><pre><code class="language-julia hljs">using JuMP, Ipopt
 
 model = Model(Ipopt.Optimizer)
 x0 = [-1.2; 1.0]
 @variable(model, x[i=1:2], start=x0[i])
 @NLobjective(model, Min, (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2)
-optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.17, running with linear solver MUMPS 5.8.0.
+optimize!(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">This is Ipopt version 3.14.19, running with linear solver MUMPS 5.8.1.
 
 Number of nonzeros in equality constraint Jacobian...:        0
 Number of nonzeros in inequality constraint Jacobian.:        0
@@ -156,7 +155,7 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 21
-Total seconds in IPOPT                               = 4.219
+Total seconds in IPOPT                               = 3.987
 
 EXIT: Optimal Solution Found.</code></pre><p>Here is an example with a constrained problem:</p><pre><code class="language-julia hljs">n = 10
 x0 = ones(n)
@@ -171,13 +170,12 @@ print(stats)</code></pre><pre class="documenter-example-output"><code class="noh
   status: first-order stationary
   objective value: 6.232458632437464
   primal feasibility: 8.354650304909228e-12
-  dual feasibility: 6.315958866407726e-9
+  dual feasibility: 7.974695538393592e-10
   solution: [-0.9505563573613093  0.9139008176388945  0.9890905176644905  0.9985592422681151 ⋯ 0.999999930070643]
   multipliers: [4.1358568305002255  -1.8764949037033418  -0.06556333356358675  -0.021931863018312875 ⋯ -7.376592164341975e-6]
   iterations: 6
-  elapsed time: 6.304
+  elapsed time: 5.995166063308716
   solver specific:
-    real_time: 6.304074048995972
     internal_msg: :Solve_Succeeded</code></pre><h2 id="Return-value"><a class="docs-heading-anchor" href="#Return-value">Return value</a><a id="Return-value-1"></a><a class="docs-heading-anchor-permalink" href="#Return-value" title="Permalink"></a></h2><p>The return value of <code>ipopt</code> is a <code>GenericExecutionStats</code> instance from <code>SolverCore</code>. It contains basic information on the solution returned by the solver. In addition to the built-in fields of <code>GenericExecutionStats</code>, we store the detailed Ipopt output message inside <code>solver_specific[:internal_msg]</code>.</p><p>Here is an example using the constrained problem solve:</p><pre><code class="language-julia hljs">stats.solver_specific[:internal_msg]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">:Solve_Succeeded</code></pre><h2 id="Monitoring-optimization-with-callbacks"><a class="docs-heading-anchor" href="#Monitoring-optimization-with-callbacks">Monitoring optimization with callbacks</a><a id="Monitoring-optimization-with-callbacks-1"></a><a class="docs-heading-anchor-permalink" href="#Monitoring-optimization-with-callbacks" title="Permalink"></a></h2><p>You can monitor the optimization process using a callback function. The callback allows you to access the current iterate and constraint violations at each iteration, which is useful for custom stopping criteria, logging, or real-time analysis.</p><h3 id="Callback-parameters"><a class="docs-heading-anchor" href="#Callback-parameters">Callback parameters</a><a id="Callback-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Callback-parameters" title="Permalink"></a></h3><p>The callback function receives the following parameters from Ipopt:</p><ul><li><code>alg_mod</code>: algorithm mode (0 = regular, 1 = restoration phase)</li><li><code>iter_count</code>: current iteration number</li><li><code>obj_value</code>: current objective function value</li><li><code>inf_pr</code>: primal infeasibility (constraint violation)</li><li><code>inf_du</code>: dual infeasibility </li><li><code>mu</code>: complementarity measure</li><li><code>d_norm</code>: norm of the primal step</li><li><code>regularization_size</code>: size of regularization</li><li><code>alpha_du</code>: step size for dual variables</li><li><code>alpha_pr</code>: step size for primal variables  </li><li><code>ls_trials</code>: number of line search trials</li></ul><h3 id="Example-usage"><a class="docs-heading-anchor" href="#Example-usage">Example usage</a><a id="Example-usage-1"></a><a class="docs-heading-anchor-permalink" href="#Example-usage" title="Permalink"></a></h3><p>Here&#39;s a complete example showing how to use callbacks to monitor the optimization:</p><pre><code class="language-julia hljs">using ADNLPModels, NLPModelsIpopt
 
 function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
@@ -288,4 +286,4 @@ P = findall(df.buy .== true)
 scatter(df.age[P], df.salary[P], c=:blue, m=:square)
 P = findall(df.buy .== false)
 scatter!(df.age[P], df.salary[P], c=:red, m=:xcross, ms=7)
-contour!(range(18, 60, step=0.1), range(40_000, 180_000, step=1.0), f, levels=[0.5])</code></pre><p><img src="../ex3.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../tips/">Performance tips »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 15 August 2025 12:01">Friday 15 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+contour!(range(18, 60, step=0.1), range(40_000, 180_000, step=1.0), f, levels=[0.5])</code></pre><p><img src="../ex3.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../tips/">Performance tips »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Tuesday 9 September 2025 12:21">Tuesday 9 September 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
