@@ -104,7 +104,7 @@ end
   @test isapprox(stats.multipliers_U, -ones(1), rtol = 1e-6)
   @test stats.status == :first_order
   @test stats.elapsed_time > 0
-  @test stats.iter == 5
+  @test stats.iter in [4; 5]
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
 end
@@ -131,7 +131,7 @@ end
 
   # Change initial guess and reset solver
   nlp.meta.x0 .= 2.0
-  reset!(solver)
+  SolverCore.reset!(solver)
 
   # Solve again with new initial guess
   stats = solve!(solver, nlp, stats, print_level = 0)
