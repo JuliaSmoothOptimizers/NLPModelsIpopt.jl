@@ -272,6 +272,21 @@ function SolverCore.solve!(
     pop!(kwargs, :zU0)
   end
 
+    # Always define ipopt_log_file for parsing output
+    if ipopt_log_to_file
+      # If user requested file logging, use their filename or default
+      ipopt_log_file = get(kwargs, :output_file, tempname())
+      push!(TEMP_FILES, ipopt_log_file)
+      0 < ipopt_file_log_level < 3 && @warn(
+        "`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations"
+      )
+    else
+      # Always log to a temp file for parsing
+      ipopt_log_file = tempname()
+      push!(TEMP_FILES, ipopt_log_file)
+      0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
+    end
+
   # pass options to IPOPT
   for (k, v) in kwargs
     if typeof(v) <: Integer
