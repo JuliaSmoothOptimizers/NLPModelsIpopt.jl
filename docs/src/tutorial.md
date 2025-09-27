@@ -11,7 +11,7 @@ stats_ipopt = ipopt(nlp,
 This will use the L-BFGS method for Hessian approximation with a history size of 10.
 
 References:
-- [Ipopt.jl Manual: Hessian approximation](https://jump.dev/Ipopt.jl/stable/manual/#Hessian-approximation)
+- [Ipopt.jl Manual: Hessian approximation](https://coin-or.github.io/Ipopt/OPTIONS.html#OPT_Hessian_Approximation)
 - [MadNLP.jl Issue #484](https://github.com/MadNLP/MadNLP.jl/issues/484)
 # Tutorial
 
