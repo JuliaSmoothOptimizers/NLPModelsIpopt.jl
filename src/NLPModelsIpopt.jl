@@ -272,21 +272,6 @@ function SolverCore.solve!(
     pop!(kwargs, :zU0)
   end
 
-    # Always define ipopt_log_file for parsing output
-    if ipopt_log_to_file
-      # If user requested file logging, use their filename or default
-      ipopt_log_file = get(kwargs, :output_file, tempname())
-      push!(TEMP_FILES, ipopt_log_file)
-      0 < ipopt_file_log_level < 3 && @warn(
-        "`file_print_level` should be 0 or ≥ 3 for IPOPT to report elapsed time, final residuals and number of iterations"
-      )
-    else
-      # Always log to a temp file for parsing
-      ipopt_log_file = tempname()
-      push!(TEMP_FILES, ipopt_log_file)
-      0 < ipopt_file_log_level < 3 && (ipopt_file_log_level = 3)
-    end
-
   # pass options to IPOPT
   for (k, v) in kwargs
     if typeof(v) <: Integer
@@ -351,80 +336,7 @@ function SolverCore.solve!(
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
   set_solver_specific!(stats, :internal_msg, ipopt_internal_statuses[status])
-  set_solver_specific!(stats, :real_time, real_time)
-
-  # Retry logic for reading and deleting temp file (Windows EBUSY workaround)
-  max_retries = 10
-  ipopt_output = nothing
-  for attempt in 1:max_retries
-    try
-      ipopt_output = readlines(ipopt_log_file)
-      break
-    catch e
-      if attempt == max_retries
-        @warn("could not parse Ipopt log file after $max_retries attempts. $e")
-        stats.primal_residual_reliable = false
-        stats.dual_residual_reliable = false
-        stats.iter_reliable = false
-        stats.time_reliable = false
-        ipopt_output = String[]
-      else
-        sleep(0.1)
-      end
-    end
-  end
-
-  Δt = 0.0
-  dual_feas = primal_feas = Inf
-  iter = -1
-  timing_stats = Dict{String, Float64}()
-  for line in ipopt_output
-    if occursin("Total seconds", line)
-      Δt += Meta.parse(split(line, "=")[2])
-    elseif occursin("Dual infeasibility", line)
-      dual_feas = Meta.parse(split(line)[4])
-    elseif occursin("Constraint violation", line)
-      primal_feas = Meta.parse(split(line)[4])
-    elseif occursin("Number of Iterations....", line)
-      iter = Meta.parse(split(line)[4])
-    elseif occursin("Timing Statistics", line)
-      # Start parsing timing statistics block
-      idx = findfirst(==(line), ipopt_output)
-      for statline in ipopt_output[idx+1:end]
-        if isempty(strip(statline))
-          break
-        end
-        m = match(r"^\s*(.+?)\s*:\s*([0-9.eE+-]+)", statline)
-        if m !== nothing
-          timing_stats[m.captures[1]] = parse(Float64, m.captures[2])
-        end
-      end
-    end
-  end
-  set_residuals!(stats, primal_feas, dual_feas)
-  set_iter!(stats, iter)
-  set_time!(stats, Δt)
-  if !isempty(timing_stats)
-    set_solver_specific!(stats, :timing_statistics, timing_stats)
-  end
-
-  # Retry logic for deleting temp file
-  for attempt in 1:max_retries
-    if isfile(ipopt_log_file)
-      try
-        rm(ipopt_log_file; force=true)
-        break
-      catch e
-        if attempt == max_retries
-          @warn "Could not remove temp file $ipopt_log_file after $max_retries attempts: $e"
-        else
-          sleep(0.1)
-        end
-      end
-    else
-      break
-    end
-  end
+  set_time!(stats, real_time)
 
   stats
 end
