@@ -5,6 +5,7 @@ You can call Ipopt with the L-BFGS Hessian approximation by passing the followin
 ```julia
 stats_ipopt = ipopt(nlp,
   hessian_approximation="limited-memory",
+  limited_memory_update_type="bfgs",
   limited_memory_max_history=10)
 ```
 
