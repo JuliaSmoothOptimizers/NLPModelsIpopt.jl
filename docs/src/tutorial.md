@@ -1,3 +1,18 @@
+## Example: Using L-BFGS (limited-memory) Hessian approximation with Ipopt
+
+You can call Ipopt with the L-BFGS Hessian approximation by passing the following options:
+
+```julia
+stats_ipopt = ipopt(nlp,
+  hessian_approximation="limited-memory",
+  limited_memory_update_type="bfgs",
+  limited_memory_max_history=10)
+```
+
+This will use the L-BFGS method for Hessian approximation with a history size of 10.
+
+Reference:
+- [Ipopt.jl Manual: Hessian approximation](https://coin-or.github.io/Ipopt/OPTIONS.html#OPT_Hessian_Approximation)
 # Tutorial
 
 NLPModelsIpopt is a thin IPOPT wrapper for NLPModels. In this tutorial we show examples of problems created with NLPModels and solved with Ipopt.
