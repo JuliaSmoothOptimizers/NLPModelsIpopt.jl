@@ -153,7 +153,7 @@ end
 """
     output = ipopt(nlp; kwargs...)
 
-Solves the `NLPModel` problem `nlp` using `IpOpt`.
+Solves the `NLPModel` problem `nlp` using `Ipopt`.
 
 For advanced usage, first define a `IpoptSolver` to preallocate the memory used in the algorithm, and then call `solve!`:
     solver = IpoptSolver(nlp)
