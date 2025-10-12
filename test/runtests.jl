@@ -65,6 +65,18 @@ end
   @test stats.primal_feas ≈ 0.0
   # @test stats.dual_feas ≈ 4.63
 
+  # Test JSO-style callback signature: (nlp, solver, stats) -> Bool
+  function jso_callback(nlp_in, solver_in, stats_in)
+    @test typeof(nlp_in) <: AbstractNLPModel
+    @test hasproperty(stats_in, :iter)
+    return false
+  end
+  nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+  stats = ipopt(nlp, tol = 1e-12, callback = jso_callback, print_level = 0)
+  @test stats.status == :user
+  @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
+  @test stats.iter >= 0
+
   nlp =
     ADNLPModel(x -> (x[1] - 1)^2 + 4 * (x[2] - 3)^2, zeros(2), x -> [sum(x) - 1.0], [0.0], [0.0])
   stats = ipopt(nlp, print_level = 0)

@@ -126,6 +126,24 @@ solver = IpoptSolver(nlp)
 stats = solve!(solver, nlp, callback = my_callback, print_level = 0)
 ```
 
+### JSO-style callback signature
+
+In addition to the Ipopt-style callback parameters, this package also accepts a simpler JSO-style callback used across JuliaSmoothOptimizers packages:
+
+- `cb(nlp, solver, stats) -> Bool`
+
+Where `nlp` is the `AbstractNLPModel` being solved, `solver` is the internal Ipopt problem/solver handle, and `stats` is the `GenericExecutionStats` object that will be updated during the solve. The callback should return `true` to continue the optimization or `false` to stop (this maps to Ipopt's user-requested stop).
+
+Example:
+
+```@example ex5
+function jso_cb(nlp, solver, stats)
+  println("iter=", stats.iter, " x=", solver.x)
+  return stats.iter < 5
+end
+stats = ipopt(nlp, callback = jso_cb, print_level = 0)
+```
+
 ### Custom stopping criteria
 
 Callbacks are particularly useful for implementing custom stopping criteria:

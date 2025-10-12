@@ -307,20 +307,29 @@ function SolverCore.solve!(
   )
     set_residuals!(stats, inf_pr, inf_du)
     set_iter!(stats, Int(iter_count))
-    return callback(
-      alg_mod,
-      iter_count,
-      obj_value,
-      inf_pr,
-      inf_du,
-      mu,
-      d_norm,
-      regularization_size,
-      alpha_du,
-      alpha_pr,
-      ls_trials,
-      args...,
-    )
+    try
+      return callback(nlp, problem, stats)
+    catch err
+      # If the signature doesn't match, fall back to the Ipopt-style callback call.
+      if isa(err, MethodError) || isa(err, ArgumentError)
+        return callback(
+          alg_mod,
+          iter_count,
+          obj_value,
+          inf_pr,
+          inf_du,
+          mu,
+          d_norm,
+          regularization_size,
+          alpha_du,
+          alpha_pr,
+          ls_trials,
+          args...,
+        )
+      else
+        rethrow(err)
+      end
+    end
   end
   SetIntermediateCallback(problem, solver_callback)
 
