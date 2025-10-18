@@ -242,6 +242,7 @@ function SolverCore.solve!(
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats;
   callback = (args...) -> true,
+  callback_style::Symbol = :auto,
   kwargs...,
 )
   problem = solver.problem
@@ -307,29 +308,64 @@ function SolverCore.solve!(
   )
     set_residuals!(stats, inf_pr, inf_du)
     set_iter!(stats, Int(iter_count))
+
+    # Helper to normalize callback return value
+    _to_bool(rv) = (rv === nothing) ? true : Bool(rv)
+
+    # Explicit styles take precedence when set
+    if callback_style === :ipopt_full
+      return _to_bool(callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+        args...,
+      ))
+    elseif callback_style === :ipopt_short
+      return _to_bool(callback(alg_mod, iter_count, obj_value))
+    elseif callback_style === :jso
+      return _to_bool(callback(nlp, problem, stats))
+    end
+
+    # Auto-detect mode: prefer JSO-style first to align with JSO ecosystem expectations.
+    # 1) JSO-style (nlp, solver, stats)
     try
-      return callback(nlp, problem, stats)
+      return _to_bool(callback(nlp, problem, stats))
     catch err
-      # If the signature doesn't match, fall back to the Ipopt-style callback call.
-      if isa(err, MethodError) || isa(err, ArgumentError)
-        return callback(
-          alg_mod,
-          iter_count,
-          obj_value,
-          inf_pr,
-          inf_du,
-          mu,
-          d_norm,
-          regularization_size,
-          alpha_du,
-          alpha_pr,
-          ls_trials,
-          args...,
-        )
-      else
+      if !(isa(err, MethodError) || isa(err, ArgumentError))
         rethrow(err)
       end
     end
+    # 2) Full Ipopt-style (least likely to match accidentally)
+    try
+      return _to_bool(callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+        args...,
+      ))
+    catch err
+      if !(isa(err, MethodError) || isa(err, ArgumentError))
+        rethrow(err)
+      end
+    end
+    # 3) Short Ipopt-style (3-arg)
+    return _to_bool(callback(alg_mod, iter_count, obj_value))
   end
   SetIntermediateCallback(problem, solver_callback)
 
