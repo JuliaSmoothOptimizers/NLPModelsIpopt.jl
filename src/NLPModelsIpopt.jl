@@ -312,7 +312,6 @@ function SolverCore.solve!(
     # Helper to normalize callback return value
     _to_bool(rv) = (rv === nothing) ? true : Bool(rv)
 
-    # Explicit styles take precedence when set
     if callback_style === :ipopt_full
       return _to_bool(callback(
         alg_mod,
@@ -334,8 +333,6 @@ function SolverCore.solve!(
       return _to_bool(callback(nlp, problem, stats))
     end
 
-    # Auto-detect mode: prefer JSO-style first to align with JSO ecosystem expectations.
-    # 1) JSO-style (nlp, solver, stats)
     try
       return _to_bool(callback(nlp, problem, stats))
     catch err
@@ -343,7 +340,7 @@ function SolverCore.solve!(
         rethrow(err)
       end
     end
-    # 2) Full Ipopt-style (least likely to match accidentally)
+
     try
       return _to_bool(callback(
         alg_mod,
@@ -364,7 +361,6 @@ function SolverCore.solve!(
         rethrow(err)
       end
     end
-    # 3) Short Ipopt-style (3-arg)
     return _to_bool(callback(alg_mod, iter_count, obj_value))
   end
   SetIntermediateCallback(problem, solver_callback)
