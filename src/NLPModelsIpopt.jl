@@ -242,6 +242,7 @@ function SolverCore.solve!(
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats;
   callback = (args...) -> true,
+  callback_style::Symbol = :auto,
   kwargs...,
 )
   problem = solver.problem
@@ -307,20 +308,60 @@ function SolverCore.solve!(
   )
     set_residuals!(stats, inf_pr, inf_du)
     set_iter!(stats, Int(iter_count))
-    return callback(
-      alg_mod,
-      iter_count,
-      obj_value,
-      inf_pr,
-      inf_du,
-      mu,
-      d_norm,
-      regularization_size,
-      alpha_du,
-      alpha_pr,
-      ls_trials,
-      args...,
-    )
+
+    # Helper to normalize callback return value
+    _to_bool(rv) = (rv === nothing) ? true : Bool(rv)
+
+    if callback_style === :ipopt_full
+      return _to_bool(callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+        args...,
+      ))
+    elseif callback_style === :ipopt_short
+      return _to_bool(callback(alg_mod, iter_count, obj_value))
+    elseif callback_style === :jso
+      return _to_bool(callback(nlp, problem, stats))
+    end
+
+    try
+      return _to_bool(callback(nlp, problem, stats))
+    catch err
+      if !(isa(err, MethodError) || isa(err, ArgumentError))
+        rethrow(err)
+      end
+    end
+
+    try
+      return _to_bool(callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+        args...,
+      ))
+    catch err
+      if !(isa(err, MethodError) || isa(err, ArgumentError))
+        rethrow(err)
+      end
+    end
+    return _to_bool(callback(alg_mod, iter_count, obj_value))
   end
   SetIntermediateCallback(problem, solver_callback)
 
