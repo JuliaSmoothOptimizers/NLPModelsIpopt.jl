@@ -136,7 +136,7 @@ Where `nlp` is the `AbstractNLPModel` being solved, `solver` is the internal Ipo
 
 Example:
 
-```@example ex5
+```@example ex4
 function jso_cb(nlp, solver, stats)
   println("iter=", stats.iter, " x=", solver.x)
   return stats.iter < 5
