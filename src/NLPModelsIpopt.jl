@@ -61,6 +61,7 @@ mutable struct IpoptSolver <: AbstractOptimizationSolver
 end
 
 function IpoptSolver(nlp::AbstractNLPModel)
+  @assert nlp.meta.grad_available && (nlp.meta.ncon == 0 || nlp.meta.jac_available)
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
 
   problem = CreateIpoptProblem(
