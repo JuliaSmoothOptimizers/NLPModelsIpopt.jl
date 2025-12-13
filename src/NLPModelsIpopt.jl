@@ -61,6 +61,7 @@ mutable struct IpoptSolver <: AbstractOptimizationSolver
 end
 
 function IpoptSolver(nlp::AbstractNLPModel)
+  @assert nlp.meta.grad_available && (nlp.meta.ncon == 0 || nlp.meta.jac_available)
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
 
   problem = CreateIpoptProblem(
@@ -247,6 +248,13 @@ function SolverCore.solve!(
   problem = solver.problem
   SolverCore.reset!(stats)
   kwargs = Dict(kwargs)
+
+  # Use L-BFGS if the sparse hessian of the Lagrangian is not available
+  if !nlp.meta.hess_available
+    AddIpoptStrOption(problem, "hessian_approximation", "limited-memory")
+    AddIpoptStrOption(problem, "limited_memory_update_type", "bfgs")
+    AddIpoptIntOption(problem, "limited_memory_max_history", 6)
+  end
 
   # see if user wants to warm start from an initial primal-dual guess
   if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL0, :zU0])
