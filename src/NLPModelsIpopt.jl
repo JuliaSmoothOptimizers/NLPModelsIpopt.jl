@@ -248,6 +248,13 @@ function SolverCore.solve!(
   SolverCore.reset!(stats)
   kwargs = Dict(kwargs)
 
+  # Use L-BFGS if the sparse hessian of the Lagrangian is not available
+  if !nlp.meta.hess_available
+    AddIpoptStrOption(problem, "hessian_approximation", "limited-memory")
+    AddIpoptStrOption(problem, "limited_memory_update_type", "bfgs")
+    AddIpoptIntOption(problem, "limited_memory_max_history", 6)
+  end
+
   # see if user wants to warm start from an initial primal-dual guess
   if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL0, :zU0])
     AddIpoptStrOption(problem, "warm_start_init_point", "yes")
