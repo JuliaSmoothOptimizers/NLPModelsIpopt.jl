@@ -52,7 +52,7 @@ const ipopt_internal_statuses = Dict(
 )
 
 """
-    IpoptSolver(nlp; kwargs...,)
+    IpoptSolver(nlp)
 
 Returns an `IpoptSolver` structure to solve the problem `nlp` with `ipopt`.
 """
