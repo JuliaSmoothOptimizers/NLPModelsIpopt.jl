@@ -61,18 +61,18 @@ mutable struct IpoptSolver <: AbstractOptimizationSolver
 end
 
 function IpoptSolver(nlp::AbstractNLPModel)
-  @assert nlp.meta.grad_available && (nlp.meta.ncon == 0 || nlp.meta.jac_available)
+  @assert get_grad_available(nlp) && (get_ncon(nlp) == 0 || get_jac_available(nlp))
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
 
   problem = CreateIpoptProblem(
-    nlp.meta.nvar,
-    nlp.meta.lvar,
-    nlp.meta.uvar,
-    nlp.meta.ncon,
-    nlp.meta.lcon,
-    nlp.meta.ucon,
-    nlp.meta.nnzj,
-    nlp.meta.nnzh,
+    get_nvar(nlp),
+    get_lvar(nlp),
+    get_uvar(nlp),
+    get_ncon(nlp),
+    get_lcon(nlp),
+    get_ucon(nlp),
+    get_nnzj(nlp),
+    get_nnzh(nlp),
     eval_f,
     eval_g,
     eval_grad_f,
@@ -91,12 +91,12 @@ If `nlp` has different bounds on the variables/constraints or a different number
 """
 function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
   problem = solver.problem
-  @assert nlp.meta.nvar == problem.n
-  @assert nlp.meta.ncon == problem.m
+  @assert get_nvar(nlp) == problem.n
+  @assert get_ncon(nlp) == problem.m
 
   problem.obj_val = Inf
   problem.status = -1
-  problem.x .= nlp.meta.x0
+  problem.x .= get_x0(nlp)
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
   problem.eval_f = eval_f
   problem.eval_g = eval_g
@@ -126,10 +126,10 @@ Return the set of functions needed to instantiate an `IpoptProblem`.
 """
 function set_callbacks(nlp::AbstractNLPModel)
   eval_f(x) = obj(nlp, x)
-  eval_g(x, g) = nlp.meta.ncon > 0 ? cons!(nlp, x, g) : zeros(0)
+  eval_g(x, g) = get_ncon(nlp) > 0 ? cons!(nlp, x, g) : zeros(0)
   eval_grad_f(x, g) = grad!(nlp, x, g)
   eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
-    nlp.meta.ncon == 0 && return
+    get_ncon(nlp) == 0 && return
     if values == nothing
       jac_structure!(nlp, rows, cols)
     else
@@ -140,7 +140,7 @@ function set_callbacks(nlp::AbstractNLPModel)
     if values == nothing
       hess_structure!(nlp, rows, cols)
     else
-      if nlp.meta.ncon > 0
+      if get_ncon(nlp) > 0
         hess_coord!(nlp, x, λ, values, obj_weight = σ)
       else
         hess_coord!(nlp, x, values, obj_weight = σ)
@@ -162,10 +162,10 @@ For advanced usage, first define a `IpoptSolver` to preallocate the memory used 
     solve!(solver, nlp, stats; kwargs...)
 
 # Optional keyword arguments
-* `x0`: a vector of size `nlp.meta.nvar` to specify an initial primal guess
-* `y0`: a vector of size `nlp.meta.ncon` to specify an initial dual guess for the general constraints
-* `zL`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the lower bound constraints
-* `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
+* `x0`: a vector of size `get_nvar(nlp)` to specify an initial primal guess
+* `y0`: a vector of size `get_ncon(nlp)` to specify an initial dual guess for the general constraints
+* `zL`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the lower bound constraints
+* `zU`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the upper bound constraints
 
 All other keyword arguments will be passed to Ipopt as an option.
 See [https://coin-or.github.io/Ipopt/OPTIONS.html](https://coin-or.github.io/Ipopt/OPTIONS.html) for the list of options accepted.
@@ -250,7 +250,7 @@ function SolverCore.solve!(
   kwargs = Dict(kwargs)
 
   # Use L-BFGS if the sparse hessian of the Lagrangian is not available
-  if !nlp.meta.hess_available
+  if !get_hess_available(nlp)
     AddIpoptStrOption(problem, "hessian_approximation", "limited-memory")
     AddIpoptStrOption(problem, "limited_memory_update_type", "bfgs")
     AddIpoptIntOption(problem, "limited_memory_max_history", 6)
@@ -265,7 +265,7 @@ function SolverCore.solve!(
     problem.x = Vector{Float64}(kwargs[:x0])
     pop!(kwargs, :x0)
   else
-    problem.x = Vector{Float64}(nlp.meta.x0)
+    problem.x = Vector{Float64}(get_x0(nlp))
   end
   if :y0 ∈ keys(kwargs)
     problem.mult_g = Vector{Float64}(kwargs[:y0])
@@ -293,7 +293,7 @@ function SolverCore.solve!(
     end
   end
 
-  if !nlp.meta.minimize
+  if !get_minimize(nlp)
     AddIpoptNumOption(problem, "obj_scaling_factor", -1.0)
   end
 
