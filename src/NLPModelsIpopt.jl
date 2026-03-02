@@ -61,18 +61,18 @@ mutable struct IpoptSolver <: AbstractOptimizationSolver
 end
 
 function IpoptSolver(nlp::AbstractNLPModel)
-  @assert get_grad_available(nlp) && (get_ncon(nlp) == 0 || get_jac_available(nlp))
+  @assert get_grad_available(nlp.meta) && (get_ncon(nlp.meta) == 0 || get_jac_available(nlp.meta))
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
 
   problem = CreateIpoptProblem(
-    get_nvar(nlp),
-    get_lvar(nlp),
-    get_uvar(nlp),
-    get_ncon(nlp),
-    get_lcon(nlp),
-    get_ucon(nlp),
-    get_nnzj(nlp),
-    get_nnzh(nlp),
+    get_nvar(nlp.meta),
+    get_lvar(nlp.meta),
+    get_uvar(nlp.meta),
+    get_ncon(nlp.meta),
+    get_lcon(nlp.meta),
+    get_ucon(nlp.meta),
+    get_nnzj(nlp.meta),
+    get_nnzh(nlp.meta),
     eval_f,
     eval_g,
     eval_grad_f,
@@ -91,12 +91,12 @@ If `nlp` has different bounds on the variables/constraints or a different number
 """
 function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
   problem = solver.problem
-  @assert get_nvar(nlp) == problem.n
-  @assert get_ncon(nlp) == problem.m
+  @assert get_nvar(nlp.meta) == problem.n
+  @assert get_ncon(nlp.meta) == problem.m
 
   problem.obj_val = Inf
   problem.status = -1
-  problem.x .= get_x0(nlp)
+  problem.x .= get_x0(nlp.meta)
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
   problem.eval_f = eval_f
   problem.eval_g = eval_g
@@ -126,10 +126,10 @@ Return the set of functions needed to instantiate an `IpoptProblem`.
 """
 function set_callbacks(nlp::AbstractNLPModel)
   eval_f(x) = obj(nlp, x)
-  eval_g(x, g) = get_ncon(nlp) > 0 ? cons!(nlp, x, g) : zeros(0)
+  eval_g(x, g) = get_ncon(nlp.meta) > 0 ? cons!(nlp, x, g) : zeros(0)
   eval_grad_f(x, g) = grad!(nlp, x, g)
   eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
-    get_ncon(nlp) == 0 && return
+    get_ncon(nlp.meta) == 0 && return
     if values == nothing
       jac_structure!(nlp, rows, cols)
     else
@@ -140,7 +140,7 @@ function set_callbacks(nlp::AbstractNLPModel)
     if values == nothing
       hess_structure!(nlp, rows, cols)
     else
-      if get_ncon(nlp) > 0
+      if get_ncon(nlp.meta) > 0
         hess_coord!(nlp, x, λ, values, obj_weight = σ)
       else
         hess_coord!(nlp, x, values, obj_weight = σ)
@@ -250,7 +250,7 @@ function SolverCore.solve!(
   kwargs = Dict(kwargs)
 
   # Use L-BFGS if the sparse hessian of the Lagrangian is not available
-  if !get_hess_available(nlp)
+  if !get_hess_available(nlp.meta)
     AddIpoptStrOption(problem, "hessian_approximation", "limited-memory")
     AddIpoptStrOption(problem, "limited_memory_update_type", "bfgs")
     AddIpoptIntOption(problem, "limited_memory_max_history", 6)
@@ -265,7 +265,7 @@ function SolverCore.solve!(
     problem.x = Vector{Float64}(kwargs[:x0])
     pop!(kwargs, :x0)
   else
-    problem.x = Vector{Float64}(get_x0(nlp))
+    problem.x = Vector{Float64}(get_x0(nlp.meta))
   end
   if :y0 ∈ keys(kwargs)
     problem.mult_g = Vector{Float64}(kwargs[:y0])
@@ -293,7 +293,7 @@ function SolverCore.solve!(
     end
   end
 
-  if !get_minimize(nlp)
+  if !get_minimize(nlp.meta)
     AddIpoptNumOption(problem, "obj_scaling_factor", -1.0)
   end
 
@@ -340,7 +340,7 @@ function SolverCore.solve!(
   set_solution!(stats, problem.x)
   set_objective!(stats, problem.obj_val)
   set_constraint_multipliers!(stats, problem.mult_g)
-  if has_bounds(nlp)
+  if has_bounds(nlp.meta)
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
   set_solver_specific!(stats, :internal_msg, ipopt_internal_statuses[status])
