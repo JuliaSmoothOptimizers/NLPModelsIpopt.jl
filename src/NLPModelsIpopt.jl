@@ -58,19 +58,56 @@ Returns an `IpoptSolver` structure to solve the problem `nlp` with `ipopt`.
 """
 mutable struct IpoptSolver{F, G, GF, JG, H, I} <: AbstractOptimizationSolver
   problem::IpoptProblem{F, G, GF, JG, H, I}
+  set_callback::Bool
+  wrapped_callback::Bool
 end
 
-function define_intermediate_callback(stats::GenericExecutionStats, callback)
+function create_solver_callback(callback, stats)
+  function solver_callback(
+    alg_mod,
+    iter_count,
+    obj_value,
+    inf_pr,
+    inf_du,
+    mu,
+    d_norm,
+    regularization_size,
+    alpha_du,
+    alpha_pr,
+    ls_trials,
+    args...
+  )
+    set_residuals!(stats, inf_pr, inf_du)
+    set_iter!(stats, Int(iter_count))
+    return callback(
+      alg_mod,
+      iter_count,
+      obj_value,
+      inf_pr,
+      inf_du,
+      mu,
+      d_norm,
+      regularization_size,
+      alpha_du,
+      alpha_pr,
+      ls_trials,
+      args...,
+    )
+  end
 end
 
 function IpoptSolver(
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats = GenericExecutionStats(nlp);
   callback = nothing,
+  wrapped_callback=true
 )
   @assert get_grad_available(nlp.meta) && (get_ncon(nlp.meta) == 0 || get_jac_available(nlp.meta))
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
-  if callback = nothing
+  if callback !== nothing
+      callback = create_solver_callback(callback, stats)
+  end
+  if wrapped_callback
       problem = CreateIpoptProblem(
         get_nvar(nlp.meta),
         get_lvar(nlp.meta),
@@ -86,37 +123,12 @@ function IpoptSolver(
         eval_jac_g,
         eval_h,
       )
+      if callback !== nothing
+        SetIntermediateCallback(problem, callback)
+      end
   else
-      function solver_callback(
-        alg_mod,
-        iter_count,
-        obj_value,
-        inf_pr,
-        inf_du,
-        mu,
-        d_norm,
-        regularization_size,
-        alpha_du,
-        alpha_pr,
-        ls_trials,
-        args...
-      )
-        set_residuals!(stats, inf_pr, inf_du)
-        set_iter!(stats, Int(iter_count))
-        return callback(
-          alg_mod,
-          iter_count,
-          obj_value,
-          inf_pr,
-          inf_du,
-          mu,
-          d_norm,
-          regularization_size,
-          alpha_du,
-          alpha_pr,
-          ls_trials,
-          args...,
-        )
+      if callback === nothing
+        callback = create_solver_callback((args...)->true, stats)
       end
       problem = CreateIpoptProblem(
         get_nvar(nlp.meta),
@@ -132,11 +144,11 @@ function IpoptSolver(
         eval_grad_f,
         eval_jac_g,
         eval_h,
-        solver_callback
+        callback
       )
   end
 
-  return IpoptSolver(problem)
+  return IpoptSolver(problem, callback !== nothing, wrapped_callback)
 end
 
 """
@@ -160,7 +172,11 @@ function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
   problem.eval_grad_f = eval_grad_f
   problem.eval_jac_g = eval_jac_g
   problem.eval_h = eval_h
-  problem.intermediate = nothing
+  if !solver.wrapped_callback
+    @warn "when using unwrapped callback, reset! does not reset the callback"
+  else
+    problem.intermediate.f = (args...) -> Cint(1)
+  end
 
   # TODO: reset problem.ipopt_problem
   return problem
@@ -171,7 +187,11 @@ function SolverCore.reset!(solver::IpoptSolver)
 
   problem.obj_val = Inf
   problem.status = -1  # Use -1 to indicate not solved yet
-  problem.intermediate = nothing
+  if !solver.wrapped_callback
+    @warn "when using unwrapped callback, reset! does not reset the callback"
+  else
+    problem.intermediate.f = (args...) -> Cint(1)
+  end
 
   return solver
 end
@@ -244,9 +264,9 @@ solver = IpoptSolver(nlp);
 stats = solve!(solver, nlp, print_level = 0)
 ```
 """
-function ipopt(nlp::AbstractNLPModel; callback = nothing, kwargs...)
+function ipopt(nlp::AbstractNLPModel; callback = nothing, wrapped_callback=false, kwargs...)
   stats = GenericExecutionStats(nlp)
-  solver = IpoptSolver(nlp, stats; callback = callback)
+  solver = IpoptSolver(nlp, stats; callback = callback, wrapped_callback=wrapped_callback)
   return solve!(solver, nlp, stats; kwargs...)
 end
 
@@ -271,7 +291,7 @@ stats = ipopt(nls, print_level = 0)
 """
 function ipopt(ff_nls::FeasibilityFormNLS; callback = nothing, kwargs...)
   stats = GenericExecutionStats(ff_nls)
-  solver = IpoptSolver(ff_nls, stats; callback = callback)
+  solver = IpoptSolver(ff_nls, stats; callback = callback, wrapped_callback=false)
   stats = solve!(solver, ff_nls, stats; kwargs...)
 
   return stats
@@ -299,11 +319,16 @@ function SolverCore.solve!(
   solver::IpoptSolver,
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats;
+  callback=(args...) -> Cint(1),
   kwargs...,
 )
   problem = solver.problem
   SolverCore.reset!(stats)
   kwargs = Dict(kwargs)
+
+  if !solver.set_callback
+    SetIntermediateCallback(problem, create_solver_callback(callback, stats))
+  end
 
   # Use L-BFGS if the sparse hessian of the Lagrangian is not available
   if !get_hess_available(nlp.meta)
