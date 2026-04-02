@@ -60,63 +60,82 @@ mutable struct IpoptSolver{F, G, GF, JG, H, I} <: AbstractOptimizationSolver
   problem::IpoptProblem{F, G, GF, JG, H, I}
 end
 
+function define_intermediate_callback(stats::GenericExecutionStats, callback)
+end
+
 function IpoptSolver(
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats = GenericExecutionStats(nlp);
-  callback = (args...) -> true,
+  callback = nothing,
 )
   @assert get_grad_available(nlp.meta) && (get_ncon(nlp.meta) == 0 || get_jac_available(nlp.meta))
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
-
-  # Callback
-  function solver_callback(
-    alg_mod,
-    iter_count,
-    obj_value,
-    inf_pr,
-    inf_du,
-    mu,
-    d_norm,
-    regularization_size,
-    alpha_du,
-    alpha_pr,
-    ls_trials,
-    args...
-  )
-    set_residuals!(stats, inf_pr, inf_du)
-    set_iter!(stats, Int(iter_count))
-    return callback(
-      alg_mod,
-      iter_count,
-      obj_value,
-      inf_pr,
-      inf_du,
-      mu,
-      d_norm,
-      regularization_size,
-      alpha_du,
-      alpha_pr,
-      ls_trials,
-      args...,
-    )
+  if callback = nothing
+      problem = CreateIpoptProblem(
+        get_nvar(nlp.meta),
+        get_lvar(nlp.meta),
+        get_uvar(nlp.meta),
+        get_ncon(nlp.meta),
+        get_lcon(nlp.meta),
+        get_ucon(nlp.meta),
+        get_nnzj(nlp.meta),
+        get_nnzh(nlp.meta),
+        eval_f,
+        eval_g,
+        eval_grad_f,
+        eval_jac_g,
+        eval_h,
+      )
+  else
+      function solver_callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+        args...
+      )
+        set_residuals!(stats, inf_pr, inf_du)
+        set_iter!(stats, Int(iter_count))
+        return callback(
+          alg_mod,
+          iter_count,
+          obj_value,
+          inf_pr,
+          inf_du,
+          mu,
+          d_norm,
+          regularization_size,
+          alpha_du,
+          alpha_pr,
+          ls_trials,
+          args...,
+        )
+      end
+      problem = CreateIpoptProblem(
+        get_nvar(nlp.meta),
+        get_lvar(nlp.meta),
+        get_uvar(nlp.meta),
+        get_ncon(nlp.meta),
+        get_lcon(nlp.meta),
+        get_ucon(nlp.meta),
+        get_nnzj(nlp.meta),
+        get_nnzh(nlp.meta),
+        eval_f,
+        eval_g,
+        eval_grad_f,
+        eval_jac_g,
+        eval_h,
+        solver_callback
+      )
   end
 
-  problem = CreateIpoptProblem(
-    get_nvar(nlp.meta),
-    get_lvar(nlp.meta),
-    get_uvar(nlp.meta),
-    get_ncon(nlp.meta),
-    get_lcon(nlp.meta),
-    get_ucon(nlp.meta),
-    get_nnzj(nlp.meta),
-    get_nnzh(nlp.meta),
-    eval_f,
-    eval_g,
-    eval_grad_f,
-    eval_jac_g,
-    eval_h,
-    solver_callback
-  )
   return IpoptSolver(problem)
 end
 
@@ -225,7 +244,7 @@ solver = IpoptSolver(nlp);
 stats = solve!(solver, nlp, print_level = 0)
 ```
 """
-function ipopt(nlp::AbstractNLPModel; callback = (args...) -> true, kwargs...)
+function ipopt(nlp::AbstractNLPModel; callback = nothing, kwargs...)
   stats = GenericExecutionStats(nlp)
   solver = IpoptSolver(nlp, stats; callback = callback)
   return solve!(solver, nlp, stats; kwargs...)
@@ -250,7 +269,7 @@ nls = ADNLSModel(x -> [x[1] - 1, x[2] - 2], [0.0, 0.0], 2)
 stats = ipopt(nls, print_level = 0)
 ```
 """
-function ipopt(ff_nls::FeasibilityFormNLS; callback = (args...) -> true, kwargs...)
+function ipopt(ff_nls::FeasibilityFormNLS; callback = nothing, kwargs...)
   stats = GenericExecutionStats(ff_nls)
   solver = IpoptSolver(ff_nls, stats; callback = callback)
   stats = solve!(solver, ff_nls, stats; kwargs...)
