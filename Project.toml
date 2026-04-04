@@ -11,7 +11,7 @@ SolverCore = "ff4d7338-4cf1-434d-91df-b86cb86fb843"
 [compat]
 Ipopt = "1.11"
 NLPModels = "0.21.6"
-NLPModelsModifiers = "0.7"
+NLPModelsModifiers = "0.7, 0.8"
 SolverCore = "0.3"
 Test = "1.10"
 julia = "1.10"
