@@ -164,8 +164,8 @@ For advanced usage, first define a `IpoptSolver` to preallocate the memory used 
 # Optional keyword arguments
 * `x0`: a vector of size `get_nvar(nlp)` to specify an initial primal guess
 * `y0`: a vector of size `get_ncon(nlp)` to specify an initial dual guess for the general constraints
-* `zL`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the lower bound constraints
-* `zU`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the upper bound constraints
+* `zL0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the lower bound constraints
+* `zU0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the upper bound constraints
 
 All other keyword arguments will be passed to Ipopt as an option.
 See [https://coin-or.github.io/Ipopt/OPTIONS.html](https://coin-or.github.io/Ipopt/OPTIONS.html) for the list of options accepted.
