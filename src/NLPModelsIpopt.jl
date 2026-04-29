@@ -126,28 +126,36 @@ Return the set of functions needed to instantiate an `IpoptProblem`.
 """
 function set_callbacks(nlp::AbstractNLPModel)
   eval_f(x) = obj(nlp, x)
-  eval_g(x, g) = get_ncon(nlp.meta) > 0 ? cons!(nlp, x, g) : zeros(0)
-  eval_grad_f(x, g) = grad!(nlp, x, g)
-  eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
-    get_ncon(nlp.meta) == 0 && return
-    if values == nothing
+  function eval_g(x, g)
+    if get_ncon(nlp.meta) > 0
+      cons!(nlp, x, g)
+    end
+    return
+  end
+  function eval_grad_f(x, g)
+    grad!(nlp, x, g)
+    return
+  end
+  function eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values)
+    if get_ncon(nlp.meta) == 0
+      return
+    elseif values == nothing
       jac_structure!(nlp, rows, cols)
     else
       jac_coord!(nlp, x, values)
     end
+    return
   end
-  eval_h(x, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
+  function eval_h(x, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values)
     if values == nothing
       hess_structure!(nlp, rows, cols)
+    elseif get_ncon(nlp.meta) > 0
+      hess_coord!(nlp, x, λ, values, obj_weight = σ)
     else
-      if get_ncon(nlp.meta) > 0
-        hess_coord!(nlp, x, λ, values, obj_weight = σ)
-      else
-        hess_coord!(nlp, x, values, obj_weight = σ)
-      end
+      hess_coord!(nlp, x, values, obj_weight = σ)
     end
+    return
   end
-
   return eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h
 end
 
