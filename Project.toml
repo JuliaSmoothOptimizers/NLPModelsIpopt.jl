@@ -9,7 +9,7 @@ NLPModelsModifiers = "e01155f1-5c6f-4375-a9d8-616dd036575f"
 SolverCore = "ff4d7338-4cf1-434d-91df-b86cb86fb843"
 
 [compat]
-Ipopt = "1"
+Ipopt = "1.2"
 NLPModels = "0.19, 0.20, 0.21"
 NLPModelsModifiers = "0.7"
 SolverCore = "0.3"

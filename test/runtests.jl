@@ -53,90 +53,80 @@ end
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0
 
-  function callback(alg_mod, iter_count, args...)
-    return iter_count < 1
-  end
-  nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-  stats = ipopt(nlp, tol = 1e-12, callback = callback, print_level = 0)
-  @test stats.status == :user
-  @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
-  @test stats.iter == 1
-  @test stats.elapsed_time > 0
-  @test stats.primal_feas ≈ 0.0
-  # @test stats.dual_feas ≈ 4.63
-
-  @testset "JSO callback stops after 5 iterations" begin
-    function jso_callback(nlp_in, solver_in, stats_in)
-      @test typeof(nlp_in) <: AbstractNLPModel
-      @test hasproperty(stats_in, :iter)
-      return stats_in.iter < 5
-    end
-    nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-    stats = ipopt(nlp, tol = 1e-12, callback = jso_callback, print_level = 0)
-    @test stats.status == :user
-    @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
-    @test stats.iter == 5
-  end
-
-  @testset "JSO callback can read problem and nlp" begin
-    function jso_cb_problem_nlp(nlp_in, solver_in, stats_in)
-      @test typeof(nlp_in) <: AbstractNLPModel
-      @test length(solver_in.x) == nlp_in.meta.nvar
-      if nlp_in.meta.ncon > 0
-        @test length(solver_in.mult_g) == nlp_in.meta.ncon
+  @testset "Callback" begin
+    @testset "Stop after a fixed number of iterations" begin
+      for maxiter in (1, 5)
+        callback(nlp, solver, stats) = stats.iter < maxiter
+        nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+        stats = ipopt(nlp, tol = 1e-12, callback = callback, print_level = 0)
+        @test stats.status == :user
+        @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
+        @test stats.iter == maxiter
+        @test stats.elapsed_time > 0
+        @test stats.primal_feas ≈ 0.0
       end
-      return stats_in.iter < 3
     end
-    nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-    stats = ipopt(nlp, callback = jso_cb_problem_nlp, print_level = 0)
-    @test stats.status == :user
-    @test stats.iter == 3
-  end
 
-  @testset "Short Ipopt-style 3-arg callback" begin
-    function short_cb(alg_mod, iter_count, obj_value)
-      @test isa(alg_mod, Integer)
-      @test iter_count >= 0
-      @test isa(obj_value, Real)
-      return iter_count < 4
+    @testset "Callback arguments" begin
+      nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+      solver = IpoptSolver(nlp)
+      iterates = Vector{Float64}[]
+      objectives = Float64[]
+      function callback(nlp_cb, solver_cb, stats_cb)
+        @test nlp_cb === nlp
+        @test solver_cb === solver
+        @test stats_cb.objective ≈ obj(nlp_cb, stats_cb.solution)
+        @test solver_cb.alg_mod ∈ (0, 1)
+        @test solver_cb.mu > 0
+        @test solver_cb.ls_trials >= 0
+        push!(iterates, copy(stats_cb.solution))
+        push!(objectives, stats_cb.objective)
+        return true
+      end
+      stats = solve!(solver, nlp, callback = callback, print_level = 0)
+      @test stats.status == :first_order
+      @test length(iterates) == stats.iter + 1
+      @test iterates[1] == nlp.meta.x0
+      @test iterates[end] ≈ stats.solution
+      @test objectives[end] ≈ stats.objective
     end
-    nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-    stats = ipopt(nlp, callback = short_cb, callback_style = :ipopt_short, print_level = 0)
-    @test stats.status == :user
-    @test stats.iter == 4
-  end
 
-  @testset "JSO callback can use solver and nlp" begin
-    used_solver = Ref(false)
-    used_nlp = Ref(false)
-    function jso_cb(nlp_in, solver_in, stats_in)
-      # Use solver.x (problem current iterate)
-      @test length(solver_in.x) == nlp_in.meta.nvar
-      used_solver[] = true
-      # Use nlp to compute objective at current x
-      _ = obj(nlp_in, solver_in.x)
-      used_nlp[] = true
-      return stats_in.iter < 3
+    @testset "Stop on the objective value" begin
+      nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+      callback(nlp, solver, stats) = obj(nlp, stats.solution) > 1.0
+      stats = ipopt(nlp, callback = callback, print_level = 0)
+      @test stats.status == :user
+      @test stats.objective <= 1.0
     end
-    nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-    stats = ipopt(nlp, callback = jso_cb, print_level = 0)
-    @test stats.status == :user
-    @test used_solver[]
-    @test used_nlp[]
-    @test stats.iter == 3
-  end
 
-  @testset "Ipopt-style short callback (3 args)" begin
-    function short_cb(alg_mod, iter_count, obj_value)
-      @test isa(alg_mod, Integer)
-      @test isa(iter_count, Integer)
-      @test isa(obj_value, Real)
-      return iter_count < 2
+    @testset "Constrained problem multipliers" begin
+      nlp = ADNLPModel(
+        x -> (x[1] - 1)^2 + 4 * (x[2] - 3)^2,
+        zeros(2),
+        zeros(2),
+        fill(10.0, 2),
+        x -> [sum(x) - 1.0],
+        [0.0],
+        [0.0],
+      )
+      last_y = Float64[]
+      function callback(nlp, solver, stats)
+        @test length(stats.multipliers) == nlp.meta.ncon
+        @test length(stats.multipliers_L) == nlp.meta.nvar
+        @test length(stats.multipliers_U) == nlp.meta.nvar
+        last_y = copy(stats.multipliers)
+        return true
+      end
+      stats = ipopt(nlp, callback = callback, print_level = 0)
+      @test stats.status == :first_order
+      @test last_y ≈ stats.multipliers
     end
-    nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-    stats = ipopt(nlp, callback = short_cb, callback_style = :ipopt_short, print_level = 0)
-    @test stats.status == :user
-    @test stats.iter == 2
+
+    @testset "Ipopt-style callbacks are not supported" begin
+      nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+      short_callback(alg_mod, iter_count, obj_value) = iter_count < 1
+      @test_throws MethodError ipopt(nlp, callback = short_callback, print_level = 0)
+    end
   end
 
   nlp =

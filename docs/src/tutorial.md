@@ -81,21 +81,32 @@ stats.solver_specific[:internal_msg]
 
 You can monitor the optimization process using a callback function. The callback allows you to access the current iterate and constraint violations at each iteration, which is useful for custom stopping criteria, logging, or real-time analysis.
 
-### Callback parameters
+### Callback signature
 
-The callback function receives the following parameters from Ipopt:
+As in other JuliaSmoothOptimizers solvers, the callback has the signature
 
-- `alg_mod`: algorithm mode (0 = regular, 1 = restoration phase)
-- `iter_count`: current iteration number
-- `obj_value`: current objective function value
-- `inf_pr`: primal infeasibility (constraint violation)
-- `inf_du`: dual infeasibility 
-- `mu`: complementarity measure
-- `d_norm`: norm of the primal step
-- `regularization_size`: size of regularization
-- `alpha_du`: step size for dual variables
-- `alpha_pr`: step size for primal variables  
-- `ls_trials`: number of line search trials
+```julia
+callback(nlp, solver, stats) -> Bool
+```
+
+where `nlp` is the model being solved, `solver` is the `IpoptSolver`, and `stats` is the `GenericExecutionStats` that is returned at the end of the solve.
+The callback should return `true` to continue the optimization or `false` to stop it, in which case the status is `:user`.
+
+Before each call, `stats` is updated with the current
+- `stats.iter`: iteration number;
+- `stats.objective`: objective value;
+- `stats.primal_feas` and `stats.dual_feas`: primal and dual infeasibility;
+- `stats.solution`: iterate;
+- `stats.multipliers`, `stats.multipliers_L` and `stats.multipliers_U`: Lagrange multipliers.
+
+The other quantities reported by Ipopt are stored in `solver`:
+- `solver.alg_mod`: algorithm mode (0 = regular, 1 = restoration phase);
+- `solver.mu`: barrier parameter;
+- `solver.d_norm`: norm of the primal step;
+- `solver.regularization_size`: size of the Hessian regularization;
+- `solver.alpha_du`: step size for the dual variables;
+- `solver.alpha_pr`: step size for the primal variables;
+- `solver.ls_trials`: number of line search trials.
 
 ### Example usage
 
@@ -104,16 +115,15 @@ Here's a complete example showing how to use callbacks to monitor the optimizati
 ```@example ex4
 using ADNLPModels, NLPModelsIpopt
 
-function my_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
-    # Log iteration information (these are the standard parameters passed by Ipopt)
-    println("Iteration $iter_count:")
-    println("  Objective value = ", obj_value)
-    println("  Primal infeasibility = ", inf_pr)
-    println("  Dual infeasibility = ", inf_du)
-    println("  Complementarity = ", mu)
-    
-    # Return true to continue, false to stop
-    return iter_count < 5  # Stop after 5 iterations for this example
+function my_callback(nlp, solver, stats)
+  println("Iteration $(stats.iter):")
+  println("  Objective value = ", stats.objective)
+  println("  Primal infeasibility = ", stats.primal_feas)
+  println("  Dual infeasibility = ", stats.dual_feas)
+  println("  Barrier parameter = ", solver.mu)
+
+  # Return true to continue, false to stop
+  return stats.iter < 5  # Stop after 5 iterations for this example
 end
 nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
 stats = ipopt(nlp, callback = my_callback, print_level = 0)
@@ -126,37 +136,19 @@ solver = IpoptSolver(nlp)
 stats = solve!(solver, nlp, callback = my_callback, print_level = 0)
 ```
 
-### JSO-style callback signature
-
-In addition to the Ipopt-style callback parameters, this package also accepts a simpler JSO-style callback used across JuliaSmoothOptimizers packages:
-
-- `cb(nlp, solver, stats) -> Bool`
-
-Where `nlp` is the `AbstractNLPModel` being solved, `solver` is the internal Ipopt problem/solver handle, and `stats` is the `GenericExecutionStats` object that will be updated during the solve. The callback should return `true` to continue the optimization or `false` to stop (this maps to Ipopt's user-requested stop).
-
-Example:
-
-```@example ex4
-function jso_cb(nlp, solver, stats)
-  println("iter=", stats.iter, " x=", solver.x)
-  return stats.iter < 5
-end
-stats = ipopt(nlp, callback = jso_cb, print_level = 0)
-```
-
 ### Custom stopping criteria
 
 Callbacks are particularly useful for implementing custom stopping criteria:
 
 ```@example ex4
-function custom_stopping_callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials, args...)
-    # Custom stopping criterion: stop if objective gets close to optimum
-    if obj_value < 0.01
-        println("Custom stopping criterion met at iteration $iter_count")
-        return false  # Stop optimization
-    end
-    
-    return true  # Continue optimization
+function custom_stopping_callback(nlp, solver, stats)
+  # Custom stopping criterion: stop if objective gets close to optimum
+  if stats.objective < 0.01
+    println("Custom stopping criterion met at iteration $(stats.iter)")
+    return false  # Stop optimization
+  end
+
+  return true  # Continue optimization
 end
 
 nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
