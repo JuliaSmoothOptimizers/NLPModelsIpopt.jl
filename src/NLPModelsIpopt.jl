@@ -52,7 +52,7 @@ const ipopt_internal_statuses = Dict(
 )
 
 """
-    IpoptSolver(nlp; kwargs...,)
+    IpoptSolver(nlp)
 
 Returns an `IpoptSolver` structure to solve the problem `nlp` with `ipopt`.
 
@@ -91,17 +91,18 @@ function reset_iteration_info!(solver::IpoptSolver)
 end
 
 function IpoptSolver(nlp::AbstractNLPModel)
+  @assert get_grad_available(nlp.meta) && (get_ncon(nlp.meta) == 0 || get_jac_available(nlp.meta))
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
 
   problem = CreateIpoptProblem(
-    nlp.meta.nvar,
-    nlp.meta.lvar,
-    nlp.meta.uvar,
-    nlp.meta.ncon,
-    nlp.meta.lcon,
-    nlp.meta.ucon,
-    nlp.meta.nnzj,
-    nlp.meta.nnzh,
+    get_nvar(nlp.meta),
+    get_lvar(nlp.meta),
+    get_uvar(nlp.meta),
+    get_ncon(nlp.meta),
+    get_lcon(nlp.meta),
+    get_ucon(nlp.meta),
+    get_nnzj(nlp.meta),
+    get_nnzh(nlp.meta),
     eval_f,
     eval_g,
     eval_grad_f,
@@ -120,12 +121,12 @@ If `nlp` has different bounds on the variables/constraints or a different number
 """
 function SolverCore.reset!(solver::IpoptSolver, nlp::AbstractNLPModel)
   problem = solver.problem
-  @assert nlp.meta.nvar == problem.n
-  @assert nlp.meta.ncon == problem.m
+  @assert get_nvar(nlp.meta) == problem.n
+  @assert get_ncon(nlp.meta) == problem.m
 
   problem.obj_val = Inf
   problem.status = -1
-  problem.x .= nlp.meta.x0
+  problem.x .= get_x0(nlp.meta)
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
   problem.eval_f = eval_f
   problem.eval_g = eval_g
@@ -157,28 +158,36 @@ Return the set of functions needed to instantiate an `IpoptProblem`.
 """
 function set_callbacks(nlp::AbstractNLPModel)
   eval_f(x) = obj(nlp, x)
-  eval_g(x, g) = nlp.meta.ncon > 0 ? cons!(nlp, x, g) : zeros(0)
-  eval_grad_f(x, g) = grad!(nlp, x, g)
-  eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values) = begin
-    nlp.meta.ncon == 0 && return
-    if values == nothing
+  function eval_g(x, g)
+    if get_ncon(nlp.meta) > 0
+      cons!(nlp, x, g)
+    end
+    return
+  end
+  function eval_grad_f(x, g)
+    grad!(nlp, x, g)
+    return
+  end
+  function eval_jac_g(x, rows::Vector{Int32}, cols::Vector{Int32}, values)
+    if get_ncon(nlp.meta) == 0
+      return
+    elseif values == nothing
       jac_structure!(nlp, rows, cols)
     else
       jac_coord!(nlp, x, values)
     end
+    return
   end
-  eval_h(x, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values) = begin
+  function eval_h(x, rows::Vector{Int32}, cols::Vector{Int32}, σ, λ, values)
     if values == nothing
       hess_structure!(nlp, rows, cols)
+    elseif get_ncon(nlp.meta) > 0
+      hess_coord!(nlp, x, λ, values, obj_weight = σ)
     else
-      if nlp.meta.ncon > 0
-        hess_coord!(nlp, x, λ, values, obj_weight = σ)
-      else
-        hess_coord!(nlp, x, values, obj_weight = σ)
-      end
+      hess_coord!(nlp, x, values, obj_weight = σ)
     end
+    return
   end
-
   return eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h
 end
 
@@ -193,10 +202,10 @@ For advanced usage, first define a `IpoptSolver` to preallocate the memory used 
     solve!(solver, nlp, stats; kwargs...)
 
 # Optional keyword arguments
-* `x0`: a vector of size `nlp.meta.nvar` to specify an initial primal guess
-* `y0`: a vector of size `nlp.meta.ncon` to specify an initial dual guess for the general constraints
-* `zL`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the lower bound constraints
-* `zU`: a vector of size `nlp.meta.nvar` to specify initial multipliers for the upper bound constraints
+* `x0`: a vector of size `get_nvar(nlp)` to specify an initial primal guess
+* `y0`: a vector of size `get_ncon(nlp)` to specify an initial dual guess for the general constraints
+* `zL0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the lower bound constraints
+* `zU0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the upper bound constraints
 * `callback`: a function `callback(nlp, solver, stats)` called at each iteration, see below.
 
 # Callback
@@ -288,6 +297,13 @@ function SolverCore.solve!(
   SolverCore.reset!(stats)
   kwargs = Dict(kwargs)
 
+  # Use L-BFGS if the sparse hessian of the Lagrangian is not available
+  if !get_hess_available(nlp.meta)
+    AddIpoptStrOption(problem, "hessian_approximation", "limited-memory")
+    AddIpoptStrOption(problem, "limited_memory_update_type", "bfgs")
+    AddIpoptIntOption(problem, "limited_memory_max_history", 6)
+  end
+
   # see if user wants to warm start from an initial primal-dual guess
   if all(k ∈ keys(kwargs) for k ∈ [:x0, :y0, :zL0, :zU0])
     AddIpoptStrOption(problem, "warm_start_init_point", "yes")
@@ -297,7 +313,7 @@ function SolverCore.solve!(
     problem.x = Vector{Float64}(kwargs[:x0])
     pop!(kwargs, :x0)
   else
-    problem.x = Vector{Float64}(nlp.meta.x0)
+    problem.x = Vector{Float64}(get_x0(nlp.meta))
   end
   if :y0 ∈ keys(kwargs)
     problem.mult_g = Vector{Float64}(kwargs[:y0])
@@ -325,13 +341,13 @@ function SolverCore.solve!(
     end
   end
 
-  if !nlp.meta.minimize
+  if !get_minimize(nlp.meta)
     AddIpoptNumOption(problem, "obj_scaling_factor", -1.0)
   end
 
   # Callback
   reset_iteration_info!(solver)
-  n, m = nlp.meta.nvar, nlp.meta.ncon
+  n, m = get_nvar(nlp), get_ncon(nlp)
   x, zL, zU = zeros(n), zeros(n), zeros(n)
   g, y = zeros(m), zeros(m)
   function solver_callback(
@@ -375,7 +391,7 @@ function SolverCore.solve!(
   set_solution!(stats, problem.x)
   set_objective!(stats, problem.obj_val)
   set_constraint_multipliers!(stats, problem.mult_g)
-  if has_bounds(nlp)
+  if has_bounds(nlp.meta)
     set_bounds_multipliers!(stats, problem.mult_x_L, problem.mult_x_U)
   end
   set_solver_specific!(stats, :internal_msg, ipopt_internal_statuses[status])

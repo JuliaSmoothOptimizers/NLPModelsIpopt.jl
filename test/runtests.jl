@@ -111,9 +111,9 @@ end
       )
       last_y = Float64[]
       function callback(nlp, solver, stats)
-        @test length(stats.multipliers) == nlp.meta.ncon
-        @test length(stats.multipliers_L) == nlp.meta.nvar
-        @test length(stats.multipliers_U) == nlp.meta.nvar
+        @test length(stats.multipliers) == get_ncon(nlp)
+        @test length(stats.multipliers_L) == get_nvar(nlp)
+        @test length(stats.multipliers_U) == get_nvar(nlp)
         last_y = copy(stats.multipliers)
         return true
       end
@@ -143,8 +143,8 @@ end
   x0 = copy(stats.solution)
   y0 = copy(stats.multipliers)
   # Ipopt wants zL and zU of size n, whether there are bounds or not
-  zL = has_bounds(nlp) ? copy(stats.multipliers_L) : zeros(nlp.meta.nvar)
-  zU = has_bounds(nlp) ? copy(stats.multipliers_U) : zeros(nlp.meta.nvar)
+  zL = has_bounds(nlp) ? copy(stats.multipliers_L) : zeros(get_nvar(nlp))
+  zU = has_bounds(nlp) ? copy(stats.multipliers_U) : zeros(get_nvar(nlp))
   stats = ipopt(nlp, x0 = x0, y0 = y0, zL0 = zL, zU0 = zU, print_level = 0)
   @test isapprox(stats.solution, x0, rtol = 1e-6)
   @test isapprox(stats.multipliers, y0, rtol = 1e-6)
@@ -160,7 +160,7 @@ end
 
   x0, f = rand(1), x -> x[1]
   nlp = ADNLPModel(f, x0, zeros(1), ones(1), minimize = false)
-  @test nlp.meta.minimize == false
+  @test get_minimize(nlp) == false
   stats = ipopt(nlp, print_level = 0)
   @test isapprox(stats.solution, ones(1), rtol = 1e-6)
   @test isapprox(stats.objective, 1.0, rtol = 1e-6)
@@ -194,7 +194,7 @@ end
   @test isapprox(stats.solution, [1.0; 1.0], atol = 1e-6)
 
   # Change initial guess and reset solver
-  nlp.meta.x0 .= 2.0
+  get_x0(nlp) .= 2.0
   SolverCore.reset!(solver)
 
   # Solve again with new initial guess

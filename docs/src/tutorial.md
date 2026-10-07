@@ -6,13 +6,15 @@ You can call Ipopt with the L-BFGS Hessian approximation by passing the followin
 stats_ipopt = ipopt(nlp,
   hessian_approximation="limited-memory",
   limited_memory_update_type="bfgs",
-  limited_memory_max_history=10)
+  limited_memory_max_history=6)
 ```
 
-This will use the L-BFGS method for Hessian approximation with a history size of 10.
+This will use the L-BFGS method for Hessian approximation with a history size of 6.
+Note that these options are used by default in `NLPModelsIpopt.jl` if `nlp.meta.hess_available` is `false`.
 
 Reference:
 - [Ipopt.jl Manual: Hessian approximation](https://coin-or.github.io/Ipopt/OPTIONS.html#OPT_Hessian_Approximation)
+
 # Tutorial
 
 NLPModelsIpopt is a thin IPOPT wrapper for NLPModels. In this tutorial we show examples of problems created with NLPModels and solved with Ipopt.
