@@ -122,10 +122,38 @@ end
       @test last_y ≈ stats.multipliers
     end
 
-    @testset "Ipopt-style callbacks are not supported" begin
+    @testset "Maximization objective sign" begin
+      nlp = ADNLPModel(x -> x[1], [0.5], zeros(1), ones(1), minimize = false)
+      function callback(nlp, solver, stats)
+        @test stats.objective ≈ obj(nlp, stats.solution)
+        return true
+      end
+      stats = ipopt(nlp, callback = callback, print_level = 0)
+      @test stats.status == :first_order
+    end
+
+    @testset "Deprecated Ipopt-style callback" begin
       nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-      short_callback(alg_mod, iter_count, obj_value) = iter_count < 1
-      @test_throws MethodError ipopt(nlp, callback = short_callback, print_level = 0)
+      ipopt_callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+      ) = iter_count < 3
+      stats = @test_deprecated r"Ipopt-style callbacks" ipopt(
+        nlp,
+        callback = ipopt_callback,
+        print_level = 0,
+      )
+      @test stats.status == :user
+      @test stats.iter == 3
     end
   end
 

@@ -90,6 +90,8 @@ function reset_iteration_info!(solver::IpoptSolver)
   return solver
 end
 
+default_callback(nlp, solver, stats) = true
+
 function IpoptSolver(nlp::AbstractNLPModel)
   @assert get_grad_available(nlp.meta) && (get_ncon(nlp.meta) == 0 || get_jac_available(nlp.meta))
   eval_f, eval_g, eval_grad_f, eval_jac_g, eval_h = set_callbacks(nlp)
@@ -215,6 +217,8 @@ Before each call,
 * `stats` is updated with the current iteration number, objective value, primal and dual residuals, iterate and multipliers;
 * `solver` is updated with the remaining Ipopt-specific quantities, see [`IpoptSolver`](@ref).
 
+Ipopt-style callbacks `callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials)` are deprecated.
+
 All other keyword arguments will be passed to Ipopt as an option.
 See [https://coin-or.github.io/Ipopt/OPTIONS.html](https://coin-or.github.io/Ipopt/OPTIONS.html) for the list of options accepted.
 
@@ -290,7 +294,7 @@ function SolverCore.solve!(
   solver::IpoptSolver,
   nlp::AbstractNLPModel,
   stats::GenericExecutionStats;
-  callback = (args...) -> true,
+  callback = default_callback,
   kwargs...,
 )
   problem = solver.problem
@@ -347,6 +351,16 @@ function SolverCore.solve!(
 
   # Callback
   reset_iteration_info!(solver)
+  legacy_callback = !applicable(callback, nlp, solver, stats)
+  if legacy_callback
+    Base.depwarn(
+      "Ipopt-style callbacks `callback(alg_mod, iter_count, obj_value, ...)` are deprecated, " *
+      "use `callback(nlp, solver, stats)` instead.",
+      :solve!,
+    )
+  end
+  # the current iterate is only needed if a user callback may read it
+  get_iterate = !legacy_callback && callback !== default_callback
   n, m = get_nvar(nlp), get_ncon(nlp)
   x, zL, zU = zeros(n), zeros(n), zeros(n)
   g, y = zeros(m), zeros(m)
@@ -363,14 +377,16 @@ function SolverCore.solve!(
     alpha_pr,
     ls_trials,
   )
-    Ipopt.GetIpoptCurrentIterate(problem, false, n, x, zL, zU, m, g, y)
     set_iter!(stats, Int(iter_count))
     set_objective!(stats, obj_value)
     set_residuals!(stats, inf_pr, inf_du)
-    set_solution!(stats, x)
-    set_constraint_multipliers!(stats, y)
-    if has_bounds(nlp)
-      set_bounds_multipliers!(stats, zL, zU)
+    if get_iterate
+      Ipopt.GetIpoptCurrentIterate(problem, false, n, x, zL, zU, m, g, y)
+      set_solution!(stats, x)
+      set_constraint_multipliers!(stats, y)
+      if has_bounds(nlp)
+        set_bounds_multipliers!(stats, zL, zU)
+      end
     end
     solver.alg_mod = Int(alg_mod)
     solver.mu = mu
@@ -379,6 +395,21 @@ function SolverCore.solve!(
     solver.alpha_du = alpha_du
     solver.alpha_pr = alpha_pr
     solver.ls_trials = Int(ls_trials)
+    if legacy_callback
+      return callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+      )
+    end
     return callback(nlp, solver, stats)
   end
   SetIntermediateCallback(problem, solver_callback)

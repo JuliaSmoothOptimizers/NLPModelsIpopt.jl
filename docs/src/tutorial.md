@@ -110,6 +110,8 @@ The other quantities reported by Ipopt are stored in `solver`:
 - `solver.alpha_pr`: step size for the primal variables;
 - `solver.ls_trials`: number of line search trials.
 
+Ipopt-style callbacks `callback(alg_mod, iter_count, obj_value, inf_pr, inf_du, mu, d_norm, regularization_size, alpha_du, alpha_pr, ls_trials)` are still accepted but deprecated, and will be removed in a future release.
+
 ### Example usage
 
 Here's a complete example showing how to use callbacks to monitor the optimization:
