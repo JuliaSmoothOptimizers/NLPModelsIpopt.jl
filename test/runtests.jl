@@ -53,17 +53,109 @@ end
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0
 
-  function callback(alg_mod, iter_count, args...)
-    return iter_count < 1
+  @testset "Callback" begin
+    @testset "Stop after a fixed number of iterations" begin
+      for maxiter in (1, 5)
+        callback(nlp, solver, stats) = stats.iter < maxiter
+        nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+        stats = ipopt(nlp, tol = 1e-12, callback = callback, print_level = 0)
+        @test stats.status == :user
+        @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
+        @test stats.iter == maxiter
+        @test stats.elapsed_time ≥ 0
+        @test stats.primal_feas ≈ 0.0
+      end
+    end
+
+    @testset "Callback arguments" begin
+      nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+      solver = IpoptSolver(nlp)
+      iterates = Vector{Float64}[]
+      objectives = Float64[]
+      function callback(nlp_cb, solver_cb, stats_cb)
+        @test nlp_cb === nlp
+        @test solver_cb === solver
+        @test stats_cb.objective ≈ obj(nlp_cb, stats_cb.solution)
+        @test solver_cb.alg_mod ∈ (0, 1)
+        @test solver_cb.mu > 0
+        @test solver_cb.ls_trials >= 0
+        push!(iterates, copy(stats_cb.solution))
+        push!(objectives, stats_cb.objective)
+        return true
+      end
+      stats = solve!(solver, nlp, callback = callback, print_level = 0)
+      @test stats.status == :first_order
+      @test length(iterates) == stats.iter + 1
+      @test iterates[1] == nlp.meta.x0
+      @test iterates[end] ≈ stats.solution
+      @test objectives[end] ≈ stats.objective
+    end
+
+    @testset "Stop on the objective value" begin
+      nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+      callback(nlp, solver, stats) = obj(nlp, stats.solution) > 1.0
+      stats = ipopt(nlp, callback = callback, print_level = 0)
+      @test stats.status == :user
+      @test stats.objective <= 1.0
+    end
+
+    @testset "Constrained problem multipliers" begin
+      nlp = ADNLPModel(
+        x -> (x[1] - 1)^2 + 4 * (x[2] - 3)^2,
+        zeros(2),
+        zeros(2),
+        fill(10.0, 2),
+        x -> [sum(x) - 1.0],
+        [0.0],
+        [0.0],
+      )
+      last_y = Float64[]
+      function callback(nlp, solver, stats)
+        @test length(stats.multipliers) == get_ncon(nlp)
+        @test length(stats.multipliers_L) == get_nvar(nlp)
+        @test length(stats.multipliers_U) == get_nvar(nlp)
+        last_y = copy(stats.multipliers)
+        return true
+      end
+      stats = ipopt(nlp, callback = callback, print_level = 0)
+      @test stats.status == :first_order
+      @test last_y ≈ stats.multipliers
+    end
+
+    @testset "Maximization objective sign" begin
+      nlp = ADNLPModel(x -> x[1], [0.5], zeros(1), ones(1), minimize = false)
+      function callback(nlp, solver, stats)
+        @test stats.objective ≈ obj(nlp, stats.solution)
+        return true
+      end
+      stats = ipopt(nlp, callback = callback, print_level = 0)
+      @test stats.status == :first_order
+    end
+
+    @testset "Deprecated Ipopt-style callback" begin
+      nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
+      ipopt_callback(
+        alg_mod,
+        iter_count,
+        obj_value,
+        inf_pr,
+        inf_du,
+        mu,
+        d_norm,
+        regularization_size,
+        alpha_du,
+        alpha_pr,
+        ls_trials,
+      ) = iter_count < 3
+      stats = @test_deprecated r"Ipopt-style callbacks" ipopt(
+        nlp,
+        callback = ipopt_callback,
+        print_level = 0,
+      )
+      @test stats.status == :user
+      @test stats.iter == 3
+    end
   end
-  nlp = ADNLPModel(x -> (x[1] - 1)^2 + 100 * (x[2] - x[1]^2)^2, [-1.2; 1.0])
-  stats = ipopt(nlp, tol = 1e-12, callback = callback, print_level = 0)
-  @test stats.status == :user
-  @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
-  @test stats.iter == 1
-  @test stats.elapsed_time > 0
-  @test stats.primal_feas ≈ 0.0
-  # @test stats.dual_feas ≈ 4.63
 
   nlp =
     ADNLPModel(x -> (x[1] - 1)^2 + 4 * (x[2] - 3)^2, zeros(2), x -> [sum(x) - 1.0], [0.0], [0.0])
