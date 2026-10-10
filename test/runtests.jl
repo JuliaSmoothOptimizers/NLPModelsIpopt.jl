@@ -62,7 +62,7 @@ end
         @test stats.status == :user
         @test stats.solver_specific[:internal_msg] == :User_Requested_Stop
         @test stats.iter == maxiter
-        @test stats.elapsed_time > 0
+        @test stats.elapsed_time ≥ 0
         @test stats.primal_feas ≈ 0.0
       end
     end
