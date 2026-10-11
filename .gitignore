@@ -1,3 +1,5 @@
 Manifest.toml
 docs/Manifest.toml
 docs/build
+benchmark_results
+benchmark/tune.json
