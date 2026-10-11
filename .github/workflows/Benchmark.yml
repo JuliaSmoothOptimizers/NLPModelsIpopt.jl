@@ -1,0 +1,152 @@
+name: Benchmarks
+on:
+  # Maintainers start benchmarks on a pull request by
+  # - adding the `benchmarks` (PkgBenchmark) or `benchmarks-solvers` (SolverBenchmark) label, or
+  # - commenting `/benchmark [script.jl]`, where `script.jl` is a runner script in benchmark/.
+  # `pull_request_target` and `issue_comment` give the job permission to comment on pull requests from forks.
+  pull_request_target:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Runner script in benchmark/"
+        required: false
+        default: "run_benchmarks.jl"
+      baseline:
+        description: "Git reference to compare against"
+        required: false
+        default: "origin/main"
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write  # reactions on `/benchmark` comments
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request_target' &&
+        contains(fromJSON('["benchmarks", "benchmarks-solvers"]'), github.event.label.name)) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+        startsWith(github.event.comment.body, '/benchmark') &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    outputs:
+      script: ${{ steps.config.outputs.script }}
+      sha: ${{ steps.config.outputs.sha }}
+      baseline: ${{ steps.config.outputs.baseline }}
+      pr: ${{ steps.config.outputs.pr }}
+    steps:
+      - id: config
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = {
+              'benchmarks': 'run_benchmarks.jl',
+              'benchmarks-solvers': 'solver_benchmarks.jl',
+            };
+            let script, sha, baseline, pr = '';
+            if (context.eventName === 'workflow_dispatch') {
+              script = context.payload.inputs.script;
+              sha = context.sha;
+              baseline = context.payload.inputs.baseline;
+            } else {
+              if (context.eventName === 'pull_request_target') {
+                script = labels[context.payload.label.name];
+                pr = context.payload.pull_request.number;
+              } else {
+                const args = context.payload.comment.body.split('\n')[0].trim().split(/\s+/);
+                if (args[0] !== '/benchmark') {
+                  core.notice('Not a /benchmark command');
+                  return;
+                }
+                script = args[1] || 'run_benchmarks.jl';
+                pr = context.payload.issue.number;
+                await github.rest.reactions.createForIssueComment({
+                  ...context.repo,
+                  comment_id: context.payload.comment.id,
+                  content: 'rocket',
+                });
+              }
+              const { data } = await github.rest.pulls.get({ ...context.repo, pull_number: pr });
+              sha = data.head.sha;
+              baseline = `origin/${data.base.ref}`;
+            }
+            if (!/^[A-Za-z0-9_]+\.jl$/.test(script)) {
+              core.setFailed(`Invalid benchmark script: ${script}`);
+              return;
+            }
+            core.setOutput('script', script);
+            core.setOutput('sha', sha);
+            core.setOutput('baseline', baseline);
+            core.setOutput('pr', pr);
+  bmark:
+    name: ${{ needs.setup.outputs.script }} - Julia ${{ matrix.version }} - macOS - ${{ matrix.arch }}
+    needs: setup
+    if: needs.setup.outputs.script != ''
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1'
+        arch:
+          - aarch64
+    env:
+      SCRIPT: ${{ needs.setup.outputs.script }}
+      BASELINE: ${{ needs.setup.outputs.baseline }}
+      PR: ${{ needs.setup.outputs.pr }}
+      SHA: ${{ needs.setup.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # benchmark the pull request rather than the base branch
+          ref: ${{ needs.setup.outputs.sha }}
+          # PkgBenchmark needs the history to check out the baseline
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run benchmarks
+        run: |
+          test -f "benchmark/$SCRIPT" || { echo "benchmark/$SCRIPT does not exist"; exit 1; }
+          julia "benchmark/$SCRIPT" benchmark_results "$BASELINE"
+      - name: Write job summary
+        run: cat benchmark_results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload artifacts
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          path: benchmark_results/
+      - name: Post results to pull request
+        if: always() && env.PR != ''
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          OUTCOME: ${{ job.status }}
+        with:
+          script: |
+            const fs = require('fs');
+            const { SCRIPT, SHA, PR, ARTIFACT_URL, OUTCOME } = process.env;
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            let body;
+            if (OUTCOME === 'success') {
+              const summary = fs.readFileSync('benchmark_results/summary.md', 'utf8');
+              body = [
+                `Here are the [benchmark results](${ARTIFACT_URL}) of \`${SCRIPT}\` for ${SHA}.`,
+                '',
+                '<details><summary>Summary</summary>',
+                '',
+                summary.slice(0, 60000),
+                '',
+                '</details>',
+              ].join('\n');
+            } else {
+              body = `\`${SCRIPT}\` failed for ${SHA}, see the [logs](${run}).`;
+            }
+            await github.rest.issues.createComment({ ...context.repo, issue_number: Number(PR), body });
