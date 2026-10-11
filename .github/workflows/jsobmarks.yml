@@ -1,0 +1,71 @@
+name: JSOBenchmarks
+on:
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+  workflow_call:
+
+jobs:
+  bmark:
+    name: Julia ${{ matrix.version }} - macOS - ${{ matrix.arch }} - ${{ github.event_name }}
+    if: github.event_name == 'workflow_call' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run benchmarks'))
+    # FIXME: should run on hosted runner
+    runs-on: macOS-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - 1
+        arch:
+          - aarch64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/julia-buildpkg@v1
+      # JSOBenchmarks is not registered: benchmark/Project.toml installs it from [sources]
+      - name: Install benchmark dependencies
+        run: julia --project=benchmark -e 'using Pkg; Pkg.instantiate()'
+      - name: Sanitize project name
+        id: sanitize
+        run: echo "REPONAME=${{ github.event.repository.name }}" | sed -e 's/\.jl$//' >> $GITHUB_OUTPUT
+      - name: Run benchmarks
+        run: julia --project=benchmark -e 'using JSOBenchmarks; run_benchmarks("${{ steps.sanitize.outputs.REPONAME }}", "benchmark", reference_branch = "main")'
+        env:
+          GITHUB_AUTH: ${{ secrets.GIST_TOKEN }}
+      - name: Run solver benchmarks
+        run: julia --project=benchmark -e 'using JSOBenchmarks; run_solver_benchmarks("${{ steps.sanitize.outputs.REPONAME }}", "benchmark", reference_branch = "main", script = "solver_benchmarks.jl")'
+        env:
+          GITHUB_AUTH: ${{ secrets.GIST_TOKEN }}
+      - name: Build comment
+        id: build-comment
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ github.token }}
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            return fs.readFileSync("${{ github.workspace }}/bmark_${{ github.sha }}.md", "utf8").toString();
+      - name: Comment in PR
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: ${{ steps.build-comment.outputs.result }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: jso-benchmarks
+          path: |
+            profiles_this_commit_vs_reference_*.svg
+            *_vs_reference_*.jld2
+            bmark_*.md
+            reference.md
+            judgement_*.md
+            this_commit_vs_reference_*.svg
+            profiles_this_commit_vs_reference_*.pdf
+            *_solver_benchmarks_*.jld2
+            this_commit_*.tex
+            reference_*.tex
