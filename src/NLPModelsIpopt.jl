@@ -206,8 +206,8 @@ For advanced usage, first define a `IpoptSolver` to preallocate the memory used 
 # Optional keyword arguments
 * `x0`: a vector of size `get_nvar(nlp)` to specify an initial primal guess
 * `y0`: a vector of size `get_ncon(nlp)` to specify an initial dual guess for the general constraints
-* `zL0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the lower bound constraints
-* `zU0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the upper bound constraints
+* `zL0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the lower bound constraints; it may be empty if `nlp` has no bounds
+* `zU0`: a vector of size `get_nvar(nlp)` to specify initial multipliers for the upper bound constraints; it may be empty if `nlp` has no bounds
 * `callback`: a function `callback(nlp, solver, stats)` called at each iteration, see below.
 
 # Callback
@@ -323,13 +323,17 @@ function SolverCore.solve!(
     problem.mult_g = Vector{Float64}(kwargs[:y0])
     pop!(kwargs, :y0)
   end
-  if :zL0 ∈ keys(kwargs)
-    problem.mult_x_L = Vector{Float64}(kwargs[:zL0])
-    pop!(kwargs, :zL0)
-  end
-  if :zU0 ∈ keys(kwargs)
-    problem.mult_x_U = Vector{Float64}(kwargs[:zU0])
-    pop!(kwargs, :zU0)
+  # IPOPT reads and writes `nvar` bound multipliers in place, so a shorter vector leads to
+  # out-of-bounds memory accesses. A problem without bounds has empty bound multipliers
+  # (e.g., in `stats`); they are not used, so the current ones are kept.
+  for (k, field) in ((:zL0, :mult_x_L), (:zU0, :mult_x_U))
+    k ∈ keys(kwargs) || continue
+    z0 = pop!(kwargs, k)
+    if length(z0) == get_nvar(nlp)
+      setproperty!(problem, field, Vector{Float64}(z0))
+    elseif !(isempty(z0) && !has_bounds(nlp.meta))
+      throw(DimensionMismatch("$k must have length $(get_nvar(nlp)), got $(length(z0))"))
+    end
   end
 
   # pass options to IPOPT

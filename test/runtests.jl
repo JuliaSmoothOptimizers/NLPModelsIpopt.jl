@@ -186,6 +186,15 @@ end
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
 
+  # warm start a problem without bounds from its stats, whose bound multipliers are empty
+  @test isempty(stats.multipliers_L) && isempty(stats.multipliers_U)
+  solver = IpoptSolver(nlp)
+  zL, zU = stats.multipliers_L, stats.multipliers_U
+  stats = solve!(solver, nlp; x0 = x0, y0 = y0, zL0 = zL, zU0 = zU, print_level = 0)
+  @test stats.status == :first_order
+  @test stats.iter == 0
+  @test length(solver.problem.mult_x_L) == length(solver.problem.mult_x_U) == get_nvar(nlp)
+
   x0, f = rand(1), x -> x[1]
   nlp = ADNLPModel(f, x0, zeros(1), ones(1), minimize = false)
   @test get_minimize(nlp) == false
@@ -199,6 +208,10 @@ end
   @test stats.iter in [4; 5; 6]
   @test stats.primal_feas ≈ 0.0
   @test stats.dual_feas ≈ 0.0 atol = 1.49e-8
+
+  # bound multipliers of the wrong size are rejected
+  @test_throws DimensionMismatch ipopt(nlp, zL0 = Float64[], zU0 = zeros(1), print_level = 0)
+  @test_throws DimensionMismatch ipopt(nlp, zL0 = zeros(1), zU0 = zeros(2), print_level = 0)
 end
 
 @testset "ipopt with AbstractNLSModel" begin
